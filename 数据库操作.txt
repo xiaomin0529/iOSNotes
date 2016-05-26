@@ -1,0 +1,21 @@
+ 分为sqlite3, coreData, FMDB第三方库
+
+在Mac上调试时, 建议安装sqlite3的可视化操作工具
+
+
+-------  sqlite3 -------------
+使用C语言方法,分以下几步:
+	1. 打开数据库:
+		sqlite3_open()
+	2. 执行sql语句:
+		sqlite3_exec()	执行update
+		sqlite3_prepare_v2(),sqlite3_step(),sqlite3_column_string()等  执行查询
+		
+示例见:
+http://www.cnblogs.com/kenshincui/p/4077833.html#SQLite
+
+-------  coreData -------------
+
+
+----------FMDB ----------------
+FMDB引入了一个FMDatabase对象来表示数据库,打开数据库和后面的数据库操作全部依赖此对象

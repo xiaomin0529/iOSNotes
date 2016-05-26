@@ -1,4 +1,6 @@
 
+--------------------------------------
+
 UIView
 	userInteractionEnabled   能否交互, 关闭则不响应事件\手势
 	exclusiveTouch		独一touch. 阻止同一窗口里其他view响应事件. (窗口是UIWindow吗)
@@ -6,3 +8,61 @@ UIView
 	tintColor		线条色相关, 继承parent或system
 	motionEffects		体育运动相关, UIDynamic吗?
 	focused			是否focused,只读的. 如何设置focuse呢
+
+
+
+-------------------------------------------------------
+
+OC的数据库Bean的示例:
+	有关init初始化所有属性, init使用kvc来初始化所的属性,静态方法生成bean实例且初始化所有属性
+@interface KCUser : NSObject
+#pragma mark 编号
+@property (nonatomic,strong) NSNumber *Id;
+#pragma mark 用户名
+@property (nonatomic,copy) NSString *name;
+#pragma mark 用户昵称
+@property (nonatomic,copy) NSString *screenName;
+#pragma mark 头像
+@property (nonatomic,copy) NSString *profileImageUrl;
+#pragma mark 会员类型
+@property (nonatomic,copy) NSString *mbtype;
+#pragma mark 城市
+@property (nonatomic,copy) NSString *city;
+
+//上面必备的属性, 这里是init和+方法, 省略了省空间
+@end
+
+
+=====================这是Bean的.m类 ================
+@implementation KCUser
+
+-(KCUser *)initWithName:(NSString *)name screenName:(NSString *)screenName profileImageUrl:(NSString *)profileImageUrl mbtype:(NSString *)mbtype city:(NSString *)city{
+    if (self=[super init]) {
+        self.name=name;
+        self.screenName=screenName;
+        self.profileImageUrl=profileImageUrl;
+        self.mbtype=mbtype;
+        self.city=city;
+    }
+    return self;
+}					--一个一个地初始化所有属性
+
+
+-(KCUser *)initWithDictionary:(NSDictionary *)dic{
+    if (self=[super init]) {
+        [self setValuesForKeysWithDictionary:dic];
+    }
+    return self;
+}					--传入json使用KVC初始化所有属性
+
++(KCUser *)userWithName:(NSString *)name screenName:(NSString *)screenName profileImageUrl:(NSString *)profileImageUrl mbtype:(NSString *)mbtype city:(NSString *)city{
+    KCUser *user=[[KCUser alloc]initWithName:name screenName:screenName profileImageUrl:profileImageUrl mbtype:mbtype city:city];
+    return user;
+}					--静态方法, 也是一个一个地初始化所有属性.
+
+@end
+
+
+
+
+--数据库bean不能嫌麻烦啊,
