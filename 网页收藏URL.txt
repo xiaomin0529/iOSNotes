@@ -1,0 +1,107 @@
+
+第三方库, 提高开发效率. 
+http://zhangmingwei.iteye.com/blog/2208783
+http://blog.csdn.net/showhilllee/article/details/16965775
+
+
+
+原理: tableView的cell重用机制.  
+注意cell1, cell11不要看错了. 另对取出的重用的cell做重新赋值，不要遗留老数据。
+http://www.cnblogs.com/pure/archive/2013/04/08/3006548.html
+
+
+
+----------小项目开发时参考-----------------
+tableView的, 滑动时展开大, 下部的缩略显示
+http://www.oschina.net/p/sffocusviewlayout
+
+
+---------------------------------
+
+基础: notification, delegate, KVO的优缺点. 应该还加上block
+http://blog.csdn.net/dqjyong/article/details/7685933
+
+
+拖动改变常用配置的实现
+http://www.oschina.net/p/ifengNewsOrderDemo
+
+
+-------------------- 动画特效 -------------------------
+
+点击有水波效果 openGL
+http://code4app.com/ios/Camera-Ripple/5075083e6803faf210000000
+
+3D球状Btn群
+http://www.oschina.net/p/dbspheretagcloud
+
+瀑布流
+http://blog.csdn.net/lilinoscar/article/details/47979353    代码简单易懂
+http://www.jikexueyuan.com/course/492.html		视频学习,使用collectionView.
+http://doc.okbase.net/xiaofeixiang/archive/140953.html    也带例子
+
+---------------------- 高斯模糊 ---------------------------------
+
+
+使用官方UIVisualEffectView时, 在上面加Button时. 
+	可以使之嵌入效果,即btn图片不是纯色,而是与下边毛玻璃颜色结合了.
+	使用UIVibrancyEffect. 但是btn图片是纯色且透明背景最好了.
+
+
+实时模糊的UIView的子类, 好像是swift写的.
+https://github.com/KyoheiG3/DynamicBlurView
+
+高斯模糊github
+https://github.com/luckytianyiyan/TYBlurImage
+修改, 现9.0后把uivisualeffect.effect的只读改为可改了. 看截图了
+
+
+Xcode基本操作 及 各种设置 (工欲善其事)
+http://www.cocoachina.com/ios/20141225/10761.html
+
+
+Info.plist所有key项, 
+官网说明: (直接搜key)https://developer.apple.com/library/ios/documentation/General/Reference/InfoPlistKeyReference/Introduction/Introduction.html#//apple_ref/doc/uid/TP40009247
+
+
+UICollectionView学习和demo
+https://github.com/yixiangboy/YXCollectionView
+
+
+tabBarItem图片设置的问题
+修改:  看官网上交互那里有tabbaritem大小的, 那个才是准确的. 不超过它的大小即可.
+
+
+
+
+------------AutoLayout篇--------
+
+爱上AutoLayout,刚开始折腾要死,后来布局思维改变,从此爱上.
+http://www.tuicool.com/articles/iIBJneA
+
+
+图形化教你如何autolayout与size class.   及最下边的参考链接,也都是图形化autolayout相关
+http://www.cocoachina.com/ios/20141217/10669.html
+
+UI布局等等, 带图讲解. 下面还有几个系列的链接
+http://blog.csdn.net/liangliang103377/article/details/40082231
+
+
+何时使用autolayout, 不使用auto可三种代码实现约束? 及代码处理横屏旋转; autolayout上view动画
+http://blog.csdn.net/liangliang103377/article/details/40082271
+
+
+
+---- 通知推送 ----------------------
+
+本地通知, IOS8以后, 有完整代码
+http://blog.csdn.net/woaifen3344/article/details/44302635
+
+
+讲推送, 特别是远程推送的前因后果非常详细, 好
+http://www.mamicode.com/info-detail-914912.html
+
+
+收藏过的系统一章, 通知与消息机制
+http://www.cnblogs.com/kenshincui/p/4168532.html
+
+
