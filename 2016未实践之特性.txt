@@ -1,0 +1,286 @@
+
+--------------------语法方面- ----------------
+delegate及代理模式			20160328
+简单方法 --- 带参数方法 ---- 带block方法----
+
+
+
+
+
+
+
+------------------------1. UI方面 ---------------------
+20160203
+弹出框,alert,prompt样式,UIAlertController --------- OK
+	Popover 			-----modalVC OK,    popover要自定义实现
+
+
+1. UIDynamic       				----------60% 还差几种效果	
+	从iOS 7开始引入的一种新技术
+	一种物理引擎，能模拟和仿真现实生活中的物理现象
+	重力、弹性碰撞等现象	
+	知名的2D物理引擎:Box2d,Chipmunk
+  http://www.tuicool.com/articles/RjU77j
+	讲解的还可以, 还带github的例子.
+   三个方面: UIDynamicAnimator 相当于上下文, 指出运动参照View
+ 	UIXxxxBehavior	行为,各种重力效果. 会带上运动View,并设置物理参数.
+	UIDynamicItem   运动的主体View
+
+    示例:
+	1.Animator的set方法里设置参照
+	self.animator = [[UIDynamicAnimator alloc] xxx:self.view];
+	2.物理效果
+	UIGravityBehavior *gravity = [alloc];	
+	[gravity addItem: self.abcView];    //UIView已实现了UIDynamicItem协议, 所以可直接用
+	3.将效果加到上下文
+	[self.animator addBehavior:gravity];
+	
+
+
+2. AutoResizing (仅了解)
+	Autoresizing的局限性'就是'只能表现父与子的关系，而无法表达兄弟视图之间的关系，
+	这就是Autoresizing的鸡肋所在。
+
+3. autolayout实践
+	http://www.jianshu.com/p/a4812b01a2a3
+	Constrain to margins. 点了会从margin处8个pt开始计算, 不点会从margin边上0开始算
+	试试点击虚线,让它变实线.
+	选约束四边大小时, 对象可选为brother. 不用再拖两个views
+
+4. UICollection 等小项目用到时再学吧
+
+5. 自定义容器VC   	--- 官方的够用吧? 在没有更个性想象力前,只改官方就可以吧
+
+6. Quartz2D
+
+7.  输入完成后, 收回键盘的实现. 或实现键盘'提交,搜索,查询'等btn调用.
+    用代理textfielddelegage, 调用shouldReturn(),即点击键盘上return/Done按钮时
+    方法里实现'提交,搜索,查询代码, 和[self.view registerFirstResponder]方法获得第一响应点,键盘即刻收起.
+	//收起是立即的, 无动画
+
+
+7.5 当点击textField之外空白处时键盘收起
+        1.view的子类重写了touchesBegan{ [self.view endEditing:YES]}
+ 	2.在VC.view上实现tap手势, 再self.view endEditing:YES
+	3.[[[UIapplication sharedApplication] keyWindow] endEditing:YES]; 任何地方都可调用		
+	  [[UIApplication sharedApplication] sendAction:@selector(resignFirstResponder) to:nil from:nil]
+
+8. view的下部textField被键盘遮挡.  此时应有view被键盘顶上去
+
+//通知中心中, 添加键盘出现/隐藏的通知和SEL. 从notifi中获取键盘height和duration	
+[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+
+
+- (void)keyboardWillShow:(NSNotification *)aNotification
+{
+    NSLog(@"%@", aNotification);
+    CGFloat keyboardHeight = [[aNotification.userInfo objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue].size.height;
+    NSTimeInterval animationDuration = [[aNotification.userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    [UIView animateWithDuration:animationDuration animations:^{
+        self.alpha = 1;
+        _sheetView.frame = CGRectMake(0, self.superview.bounds.size.height - _sheetView.bounds.size.height - keyboardHeight, _sheetView.bounds.size.width, kSheetViewHeight);
+    } completion:nil];
+}
+
+- (void)keyboardWillHide:(NSNotification *)aNotification
+{
+    NSDictionary *userInfo = [aNotification userInfo];
+    NSTimeInterval animationDuration = [[userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    [UIView animateWithDuration:animationDuration animations:^{
+        self.alpha = 0;
+        _sheetView.frame = CGRectMake(0, self.superview.bounds.size.height, _sheetView.bounds.size.width, kSheetViewHeight);
+    } completion:^(BOOL finished){
+        [self dismissCommentView];
+    }];
+}
+
+
+
+	http://blog.sina.com.cn/s/blog_6386ae0d0102v5i7.html
+9. (更高级)像微博一样, 键盘上部加上 表情|添加|@等, 按下后动画替换键盘内容.
+
+10. iOS系统的Notification.  NotificationCenter使用
+	http://www.jianshu.com/p/209ef870e131?utm_campaign=maleskine&utm_content=note&utm_medium=pc_author_hots&utm_source=recommendation
+11. 都有哪些Notification呢?  记录一下
+	http://www.zhihu.com/question/30640348  常用的, 了解一下吧    OK
+
+
+12. 
+ 
+
+
+---------------------2. 附带功能 -------------------------
+
+1. 摇晃事件  ---运动事件
+
+2. 耳机线控   ---远程控制事件
+
+3. 音频播放,录音	 -----音频播放OK, 录间还不会
+
+4. 视频播放		---- 使用场景少, 暂不学
+
+5. 拍照,视频录制, 相机滤镜处理.   ----拍照调用imagePicker即可 OK, 视频与滤镜场景少而专,不学
+
+6. 获取通讯录
+
+7. 蓝牙
+
+8. passbook等其他内置, icloud,gameCenter仅作了解.  -------这些应该需要app上线才有的权限吧.
+
+---------------------- 3. 多线程 -------------
+http://www.cnblogs.com/kenshincui/p/3983982.html
+
+1. NSThread, NSOperation, GCD
+	NSOperation 面向对象开发
+	GCD(Grand Central Dispatch)是基于C语言开发的一套多线程开发机制，也是目前苹果官方推荐的多线程开发方法
+
+
+
+-----------------------4. 网络开发 -------------------------------
+socket与HTTP各自特点,及应用场景
+	http://blog.163.com/xushao1990@126/blog/static/10905737220136481016325/
+  --Socket适用场景：网络游戏，银行交互，支付。
+  --http适用场景：公司OA服务，互联网服务。
+
+1. socket, TCP/IP (区别于HTTP网络)  ----(了解)
+	socket带图讲解
+	http://my.oschina.net/u/1378445/blog/340206
+	 
+2. NSURLConnection,NSURLSession,UIWebView
+
+3. 网络框架 AFNetworking, SDWebImage, MJRefresh,MJExtension等
+
+
+---------------------- 5. HTML5---------------
+“用户”的需求会被放在特定“商业”逻辑里，然后选择具体“技术”来实现，
+技术作为底层基础、商业逻辑基于技术实现、用户需求被商业逻辑包装后的技术满足。
+
+HTML5至今也没达到原生(native)的体验. 因此代替不了原生.
+http://www.cyzone.cn/a/20141125/266210.html
+
+	终端和操作系统的发展已经不能用日新月异来形容，各种新的能力层出不穷。缓慢更新和落后的标准完全无法适应	终端的发展以提供最新的端API，因此可以说HTML5在端API领域存在较大的弱势
+
+	WebApp是把js,图片文件都放在手机本地上. 如同本地一个小工程(靠,不是动态向服务器加载啊,搞个屁),然后用ajax向服务端请求数据.(估计是安卓上这样吧)
+
+
+1. 响应式布局 (只了解下吧, 工作中需要再学)
+	http://www.th7.cn/Program/IOS/201312/163190.shtml   介绍
+	http://www.cocoachina.com/design/20150105/10833.html  现状和趋势
+
+2. Bootstrap, phonegap,titanium 框架
+	Bootstrap:推特公司的,在jQuery基础上进行完善,兼容jQuery插件.用HTML5+CSS3开发的.国内的WeX5也是在上面改
+的.
+	PhoneGap:能调用手机核心功能:联系人,相机等. WeX5怎么也跟他有关呢.
+
+3. jquery-mobile  不如上面两个
+
+4. HTML5 + Native混合开发 (就是原生与网页混合,要快且变化少的用原生,可以慢变化多的用网页框架)
+	http://www.cnblogs.com/xesam/archive/2012/04/26/2471544.html  优劣与场景
+
+
+
+---------------------6.测试,打包及第三方库 -----------------------
+1. 单元测试
+
+
+2. 静态库
+
+
+3. 第三方登录(借用微博,QQ登陆)
+
+4. app extensions
+
+5. 二维码
+
+6. 打包发布程序
+
+7. 瀑布流
+
+8. 自定义UICollectionViewLayout
+
+9. github
+
+10. cocoaPods
+
+11. 社交分享
+
+12. 应用统计
+
+13. 硬件信息获取(内存,CPU等)
+
+14. 第三方支付,内购(学习实现不了, 仅了解吧)
+
+
+
+------------------------7.MVC,MVP,MVVM的区别及场景 (是框架才有的东西) ----------------------
+都为了实现业务分离. 
+几乎所有的MV*模式都是经典的Smalltalk-80 MVC的修改版
+
+1. MVC
+ MVC最先是CS上,BS上模仿它变成MVC Model2, 但是没有model使用观察者模式直接连接View,不是严格的MVC.
+
+ 图形界面中MVC: 三方互通,且单向的
+ view捕获操作-->controller进行处理,执行业务逻辑-->model变更了-->观察模式通知view(可通知多个三角上的views)
+
+	MVC缺点是:controller脱离view后测试困难. 
+
+2. MVP
+ 其中的controller变成了presenter 呈现者
+ view--presenter--model顺序一样
+ model变更后----观察者模式到presenter---通过view的接口更新view
+	关键点: view不再负责同步的逻辑(观察者), 而是交给present负责.
+			view要提供界面的接口给presenter进行调用.   (观察者模式同步由view交给present了)
+	缺点: presenter中除了业务逻辑外, 还有大量view-model, model-view的手动同步逻辑. 
+			造成它比较笨重,维护困难.
+			
+3. MVVM 
+  可看成是特殊的MVP
+  
+  流程同MVP一样, 只不过Presenter换成了viewModel(VM)
+  但是在VM中有个'双向数据绑定'的Binder, model更新时,binder会反映到view上;view输入,binder会更新到model中.
+     (MVVM框架自动实现的)
+  然后viewModel自身再处理业务逻辑问题.
+	
+  缺点: 数据绑定是'指令式'地声明在view模板中, 这些内容是没办法打断点debug的.
+	
+http://www.linuxidc.com/Linux/2015-10/124622.htm  三个模式的历史和优缺点
+http://www.infoq.com/cn/articles/rethinking-mvc-mvvm?utm_campaign=infoq_content& 讲MVC如何将不同部分的代码抽象到不同文件中,分开管理.
+	//如UITableView的DataSource抽离出来, 数据获取和转换抽离出来, 拼各种控件的逻辑抽离出来.
+	//这个想法不错. 可以在设计时就将ViewController中的代码分分类, 这种代码分到A类,这种代码分到B类.
+	//不要注意复用
+
+---------------------8. ios相关的面试题 -------------------
+1. 数据结构与算法, C++
+
+2. Runtime, Runloop
+
+
+-------------------- 9. 项目实战 ----------------------------
+1. 新闻媒体app
+2. 多媒体app (音乐, 视频)
+3. 电商app (美丽说, 蘑菇街等)
+
+4. 自己的小app
+
+----------------------999. 安全防范 -----------------------------------
+因为ios平台沙箱授权及appstore等,杜绝了恶意软件的侵入. 但数据传输上则无法避免.所以要:
+
+1. 网络安全,加密算法
+
+2. HTTPS
+	http://www.cocoachina.com/ios/20150811/12947.html
+
+------------------ 1000.新技术---------------------------
+1. swift  
+	语法更现代
+
+2. React Native 框架
+	facebook去年开源的框架, 保证native的体验同时兼顾开发效率.
+	https://www.zhihu.com/question/27852694
+	
+3. ReactiveCocoa  响应式编程 的MVVM框架  
+	http://blog.csdn.net/xdrt81y/article/details/30624469
+
+
+性能/体验、稳定性、扩展性、开发效率

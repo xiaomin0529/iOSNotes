@@ -1,0 +1,67 @@
+ #import "LTSlidingViewCoverflowTransition.h"
+#define finalAngel 30.0f
+#define perspective 1.0/-600
+#define finalAlpha 0.6f
+
+@implementation LTSlidingViewCoverflowTransition
+
+- (void)updateSourceView:(UIView *)sourceView destinationView:(UIView *)destView withProgress:(CGFloat)progress direction:(SlideDirection)direction
+{
+    CATransform3D transform = CATransform3DIdentity;
+    transform.m34 = perspective;
+    
+    CGFloat angle =  finalAngel * M_PI / 180.0f * progress;
+    if (direction == SlideDirectionLeft) {
+        angle = -angle;
+    }
+    transform = CATransform3DRotate(transform, angle , 0.0f, 1.0f, 0.0f);
+    sourceView.layer.transform = transform;
+    sourceView.alpha =  1 - progress * (1 - finalAlpha);
+    
+    if (destView) {
+        CATransform3D transform = CATransform3DIdentity;
+        transform.m34 = perspective;
+        CGFloat angle =  - finalAngel * M_PI / 180.0f * (1 - progress);
+        if (direction == SlideDirectionLeft) {
+            angle = -angle;
+        }
+        transform = CATransform3DRotate(transform, angle , 0.0f, 1.0f, 0.0f);
+        destView.layer.transform = transform;
+        destView.alpha = finalAlpha + (1 - finalAlpha) * progress;
+    }
+    
+}
+@end
+
+
+------------------ m34 ---------
+我也不能解释的很清楚，说的不对的其他童鞋指正下：
+
+transform的结构如下：
+struct CATransform3D
+{
+  CGFloat m11, m12, m13, m14;
+  CGFloat m21, m22, m23, m24;
+  CGFloat m31, m32, m33, m34;
+  CGFloat m41, m42, m43, m44;
+};
+
+首先要实现view（layer）的透视效果（就是近大远小），是通过设置m34的：
+
+CATransform3D rotationAndPerspectiveTransform = CATransform3DIdentity;
+rotationAndPerspectiveTransform.m34 = 1.0 / -500;
+
+m34负责z轴方向的translation（移动），m34= -1/D,  默认值是0，也就是说D无穷大，这意味layer in projection plane（投射面）和layer in world coordinate重合了。
+
+D越小透视效果越明显。
+
+所谓的D，是eye（观察者）到投射面的距离。
+
+
+
+iphone 透视效果（perspective）
+
+CATransform3D transform = CATransform3DIdentity;
+transform.m34 = 0.0005; // 透视效果
+transform = CATransform3DRotate(transform,(M_PI/180*40), 0, 1, 0);
+[piece.layer setTransform:transform];

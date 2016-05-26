@@ -1,0 +1,42 @@
+当app进入background状态时, 程序是暂停状态
+此时有5s时间做保存和清理工作.
+
+想要后台运行有两种类型: 1.延长到10分钟; 2.永远运行
+
+----------- 延长10分钟运行 ------------------------------
+调用beginBackgroundTaskWithExpirationHandler方法:
+
+
+---------- 无限后台运行 ----------------------------------
+iOS允许后台运行的情况有:audio,位置更新gps,VoIP(声音通过ip,即网络通信.如qq未打开仍可接视频)
+	下载新闻,和附属硬件通讯,和蓝牙通讯/共享数据
+
+1.Info.plist中加入后台申请
+   UIBackgroundModes: voip
+ or Request background modes: App plays audio
+
+2. didFinishLaunchingWithOptions:options{
+    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error];
+    [[AVAudioSession sharedInstance] setActive:YES error:&error2];
+}
+
+3. applicationDidEnterBackground{
+    _block UIBackgroundTaskIdentifier bgTask;
+    bgTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+	dispatch_async(dispatch_get_main_queue(),^{
+	    if(bgTask != UIBackgroundTaskInvalid){
+		baTask = UIBackgroundTaskInvalid;
+	    }
+	});
+    }];
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0),^{
+	dispatch_async(dispatch_get_main_queue(),^{
+	    if(bgTask != UIBackgroundTaskInvalid){
+		bgTask = UIBackgroundTaskInvalid;
+	    }
+	});
+    });
+}
+
+//加好后, 可测试出进入后台仍可运行定时器
+

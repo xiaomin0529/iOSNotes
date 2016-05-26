@@ -1,0 +1,823 @@
+
+
+======================== 基本设置 =================================================================
+swift可以无缝地与Cocoa和Objective-C结合.  可以在swift中用ObjC API,也可以在ObjC中使用swift API.
+
+	1.互用
+	2.混合与匹配
+	3.迁移
+
+1. 设置你的Swift环境
+	新建项目->选择语言:swift 
+	项目与ObjC的不同: 没有.h.m(没有明确的轮廓), 只有.swift
+
+	swift开发注意平台版本问题,太早的平台版本会报错. iOS7,OSX10.9
+	
+
+2. 理解swift导入(import)过程
+	格式为:
+	import Foundation
+	
+  过程解释:
+	ObjC的框架API都在.h文件中,swift会把这些.h文件编译进Objc内容的模块中, 再import进来作为swift API. (swift导入的都是模块)
+	import过程决定ObjC中声明的函数/类/方法/类型等如何展现在swift中.
+	
+	函数和方法的参数和返回值:
+		类型相当, 如  		id <--> AnyObject		都是class引用类型
+		核心类型to替代, 如 	NSString <--> String
+		思想替代, 如 		指针 <--> 可选类型
+		
+	注意: swift不能导入C++代码. 如需要C++库, 则要用Objc或C给它作层封装,再导入.
+	
+	ObjC中导入swift:
+		swift模型会生成.h文件, ObjC中导入这个.h就行了.
+	
+	
+	
+================= 两种语言间 互操作性 =====================================
+swift & ObjC 用某种语言写的文件内可以使用另一种语言.
+很重要一方面是swift可使用ObjC API.
+
+
+1.构造方法
+	ObjC的构方
+		定义: 
+		-(instancetype)initWithFrame:(CGRect)frame style:(UITableViewStyle)style
+		调用:
+		UITableView *tableView = [[UITableView alloc] initWithFrame:rect style:UITableViewStyleXX]
+		
+	swift的构方:(更接近java)
+		定义:
+		init(){}    init(frame:CGRect,style:UITableViewStyle){...}
+		调用:
+		let tableView:UITableView = UITableView(frame:rect,style:UITableViewStyleXX)
+	
+	--java的构方的定义和调用都是className; swift的定义是init,调用是className
+
+
+1.1 OC工厂构方是swift便利构方:
+	还记得swift中的直接构方和便利构方吗? 继承与调用关系?
+	OC中的多态构方(工厂构方)在swift中都是便利构方
+	示例:
+		UIColor *color = [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0]
+		let color:UIColor = UIColor(red:0.5,green:0.5,blue:0.5,alpha:1.0)	--
+		
+	--colorWithRed:直接是便利构方使用, 其他ObjC类都可这样用.
+	
+	
+1.2 可失败构方
+	ObjC中构方失败会直接返回nil, swift中此功能被整成可失败构方的特性.
+	示例:  
+	if let image = UIImage(contentsOfFile:"") {				--[UIImage imageWithName:@""]
+	} else {
+	}
+	
+		
+		
+2. 访问属性
+	导入OC中@property定义的属性进入swift可用以下方式:
+	1. OC中定义成nonull,nullable和null_resettable的属性导入后为?或!型
+	2. OC中readonly属性-->{get}的计算型属性
+	3. OC中weak属性 -->  weak var ..
+	4. OC中非weak属性(retain,copy,strong,unsage_unretaining等) 转换为相应属性
+	5. 原子属性(nonatomic,atomic)无对应, 但在OC中声明的原子属性在swift中仍然生效.
+	6. 访问属性(getter=,setter=)在swift中被忽略,无效
+	
+	
+	
+3. 调用方法
+	改成点号调用
+	[tableView insertSubView:subView  atIndex:2]
+	tableView.insertSubView(subView, atIndex:2)
+	
+4. id兼容性
+	var object:AnyObject = UITableViewCell()	
+	object = NSDate()					--定义成AnyObject后可以更改类型
+	object.characterAtIndex(1)			--NSDate无此方法, 但编译正常, 运行时才报错. 因为是AnyObject类型的
+	
+	--AnyObject调用属性或方法都是?型的. 方法调用要带?号: object.mtd?(arg) 
+	--记得可选链吗?  aa?.mtd?().mtd2?().count?.property   --好像是这样
+	
+	
+4.1 强制转换AnyObject
+	let object:AnyObject? = userDefaults.objectForKey("xx")		--KVO返回的都是id/AnyObject
+	if let date=object as? NSDate {								--用 as?+if 转换类型. 
+		//转换成功后代码
+	}
+	如明确知道类型,则不用if,直接as!转 
+	let date = object as!NSDate; 	date.mtd()
+	let str = object as!NSString 		--转换出错
+	
+	
+	
+5. 可空和可选的属性
+	ObjC可用非空声明决定属性,参数,返回值是否可为空. 甚至用NS_ASSUME_NONNULL_BEGIN宏命令...
+	swift导入后, nonnull为非空(啥都不加的), nullable为?, 没加则默认为打开的可选型 (?)!
+	
+	@property (nullable) id nullableProperty;
+	@property (nonnull) id nonNullProperty;
+	@property id unannotatedProperty;				--未修饰的
+	
+	var nullableProperty: AnyObject?			--
+	var nonNullProperty: AnyObject				--
+	var unannotatedProperty: AnyObject!			--未加的, 默认为!后的可选类型(原类型仍是可选类型)
+	
+	- (nullable id)returnsNullableValue;
+	- (void)takesNullableParameter:(nullable id)value;
+	func returnsNullableValue() -> AnyObject?
+	func takesNullableParameter(value: AnyObject?)
+	
+	- (id)returnsUnannotatedValue;
+	- (void)takesUnannotatedParameter:(id)value;			
+	func returnsUnannotatedValue() -> AnyObject!
+	func takesUnannotatedParameter(value: AnyObject!)		--这种的要注意, 不加的反而是!的
+	
+	
+	
+6. ObjC中轻量级泛型
+	主要在集合类型中
+	@property NSArray<NSDate *> *dates;							--OC中几类集合泛型
+	@property NSSet<NSString *> *words;
+	@property NSDictionary<NSURL *, NSData *> *cachedData;	
+	
+	var dates: [NSDate]
+	var words: Set<String>									--Set仍然是<>, 数组和字典只用[]就好了.
+	var cachedData: [NSURL: NSData]
+	
+	注意: ObjC集合的轻量级泛型在swift中是忽略的.导入后是不带泛型的集合
+	
+
+7. 扩展
+	同ObjC中的catagory相似. 都可以扩展class,struct,enum
+	在swift中导入OC模块后, 即可扩展其中类型.
+	示例:
+	extension UIColor {
+		convenience init(onlyRed:Double,alpha:Double) {
+			self.init()
+			self.red = onlyRed; self.green = 1.0; self.blue = 1.0
+		}
+	}
+	
+	还可扩展: 计算型属性; override属性,方法; 让某类实现协议一致性;
+	
+	
+	
+8. 闭包
+	OC的闭包会自动转换为swift的闭包.    @convention(block)
+	void (^completionBlock)(NSData *, NSError *) = ^(NSData *data, NSError *error) {
+	}
+	--括号里的竟然是名字
+	let completionBlock: (NSData, NSError) -> Void = { data, error in
+	}
+	--{}内参数后in,后竟然是代码..
+	
+	--两种闭包通用, OC的方法需要闭包参数可传swift闭包, swift方法参数也可传OC闭包.
+	
+	
+	
+8.1 避免strong循环,当捕获自身时
+	闭包是引用类型. self强引用闭包, 闭包体强引用self属性/方法.
+	OC:
+		__weak typeof(self) weakSelf = self;		--OC中先取个self变成weak,在block里再变成strong,再实现代码
+		self.block = ^{
+		   __strong typeof(self) strongSelf = weakSelf;
+		   [strongSelf doSomething];
+		};
+	swift:
+		self.closure = { [unowned self] in		--swift的闭包循环直接用[unowned self]即可
+			self.doSomething()
+		}
+		
+		
+9. 对象比较
+	内容比较==, 等于调用NSObject的isEqual方法
+	身份比较===,等于判断指针是否同一个
+	实现Equatable协议 + 继承NSObject类.
+	实现Hashable协议 + 继承NSObject类和类中hashValue属性, 
+	
+	
+	
+10. swift类型兼容性
+	当创建了继承自OC类的swift类时, 类和成员都自动和OC的兼容. 但排除swift自有的特性:
+		泛型
+		元组: (1,2,3)
+		枚举,原始值不是Int型的.
+		struct,定义在swift中的
+		顶层函数,定义在swift中的
+		全局变量,定义在swift中的
+		类型命名,定义在swift中的
+		嵌套类型
+		
+	swift类型自动转向OC:
+		可选类型 -> nullable,  非空 -> nonnull
+		swift常量变量,方法,构方 -> OC的相应成员
+		抛异常方法 -> NSError,
+		
+	示例: swift文件中, swift与OC结合
+		class SomeClass:NSObject{
+			var library:Set<String>
+			var name:String?				--可选  nullable
+			var isCurrent:Bool{
+				return name==nil			--计算型属性
+			}
+			init(name:String?){				--可选型
+				self?.name = name
+			}
+			init(lib:String...){
+				self.library = Set<String>(lib)			--用...的竟然可以直接为Set
+			}
+		}
+	OC代码则为: .h
+		@interface SomeClass:NSObject{
+		@property (nonatomic, copy) NSSet<NSString *> * __nonnull library;
+		@property (nonatomic, copy) NSString * __nullable name ;
+		@property (nonatomic, readonly) BOOL isCurrent;
+		-(nonnull instancetype)initWithName:(NSString* __nullable) name ;
+		-(nonnull instancetype)initWithLib:(Set<NSString*> *__nonnull) lib;
+		}
+			
+	注意: 不能在OC中继承一个swift类.
+	
+	
+	
+	
+10.1 配置swift代码以暴露成员给ObjC:
+	有时需要更好地把swiftAPI暴露给OC, 可以在swift中加上@objc(name)注解使swift的类/属性/方法,枚举类/枚举例
+	暴露给OC.
+	
+	示例:
+	@objc(Color)			--枚举类名
+	enum ыйЦ {				--swift命名任意unicode,OC必须英文数字
+		@objc(red)			--枚举item名
+		case Черн
+	}
+	@objc(Person)			--类名
+	class 人类: NSObject{
+		@objc(color)		--属性名
+		var 乱码:ыйЦ =  .Черн
+		
+		@objc(initWithName:)		--参数加:号
+		init(name:String) {
+		}
+		
+		@objc(mtdByArg:withArg2:)
+		func 乱码方法(乱码名:Int  乱码2:乱码类型){
+		}
+	}
+	
+	
+10.2 动态分配 
+	当OC在运行时导入swiftAPI,没有保证动态分配成员. swift为保性能会绕开OC.
+	dynamic 修饰, 但是极少需要用到的.
+	
+	
+11. OC的选择器Selector:
+	OC的SEL是引用到一个方法.  在swift中可以用#selector()表达式.
+	示例:
+		let mySelector = #selector(MyViewController.tappedButton)		
+		
+	OC中的方法可被加上(),然后用as来转义消除歧义:
+	let anotherSel = #selector(((UIView.insertSubView(_:at:)) as (UIView)->(UIView,Int)->Void))
+		--仅是用as消除歧义的. 本质还是调用insertSubView
+		
+	完整类示例:
+	import UIKit
+	class myUIViewController:UIViewController{
+		let myBtn = UIButton(xx)
+		override init?(x:y){
+			super.init(x:y)
+			let action = #selector(myUIViewController.tappedButton)		--自己的方法也要: 类名.方法
+			myBtn.addTarget(self,action:action, xx)
+		}
+		func tappedButton(sender:UIButton){}
+	}
+	
+	
+11.1 用performSelector发送消息
+	可以在swift中调用NSObject.performSelector()系列方法向ObjC对象发送消息.
+	performSelectorAPI能同步地发消息至特定的线程, or在一个延迟之后. (哇, 能跨线程发送, 还能发送给延迟过程呀)
+	
+	-(void)performSelector:(SEL)aSelector
+             withObject:(id)anArgument
+             afterDelay:(NSTimeInterval)delay			--给定延时时间发送
+			inModes:(NSArray<NSString *> *)modes		--数组里各种模式
+			
+	-performSelectorOnMainThread ...					--主线程
+	-performSelector:  onThread ...						--指定线程
+	-performSelectorInBackground: withObject:			--后台运行
+	
+	
+	注意:在swift中performSelector()返回Unmanaged<AnyObject>! (后面会讲到, 是!后的可选类型)
+	
+	
+	示例:
+	let string: NSString = "Hello, Cocoa!"
+	let selector = #selector(NSString.lowercaseStringWithLocale(_:))		--方法返回小写
+	let locale = NSLocale.currentLocale()
+	if let result = string.performSelector(selector, withObject: locale) {	--把str发送给locale,有可选类型返回
+		print(result.takeUnretainedValue())									--这个后面会讲到.
+	}
+	
+	
+	
+============= swift的class使用OC的行为============================================
+如继承OC, 实现OC协议, 和其他OC的功能
+
+1. 继承OC类
+	import UIKit
+	class MySwiftViewController: UIViewController {
+	}
+	
+	
+1.1 NSCoding协议
+	它要求实现类必须实现init(coder:), 子类也要实现init(coder:),即required类型的
+	required init(coder aDecoder: NSCoder) {
+	}
+	
+	在从storyboard中加载or向磁盘中存档时, 使用NSUserDefault, NSKeyedArchiver类必须要完全实现此方法
+	
+
+2. 实现协议
+	协议在OC中和swift中是一样的. 
+	class myClass:NSObject, UITableViewDatasource,UITableViewDelegate{
+	}
+	
+	定义类型时限定一个or多个协议:
+	var item:SomeProtocol 
+	var item2:protocol<UITableViewDatasource,UITableViewDelegate
+	
+	
+	
+3. initializer & deinitializer 初始构方与反初始化
+	不像OC, swift中的初始化会保证所有属性都有值,增加代码安全性.
+	当想清理时, 可用deinit方法替代dealloc方法. swift的deinit会在实现销毁时自动调用.
+	当继承了OC类时,swift会调用super.dealloc()方法,
+	
+	都用swift自带init,deinit.  继承OC类销毁会自动调用super.dealoc(在deinit里调用吗? 还是啥?)
+	
+	
+	
+4. swift类名与OC API
+	swift的类名基于所在模块, 不像OC的所有模块的类名不能重复(加前缀哦). (java的基于package)
+	一个app就是一个模块, 所以Plan程序中的Dog 调用时就是Plan.Dog
+	
+	swift类名暴露在OC中, 要用全名. 如 AppName.className
+	
+	
+	
+	
+5. swift与Interface Builder一起用. 
+	Interface Builder即是拖拉界面, 如IBOutlet,IBAction就只在IB中起作用.
+	
+	5.1 与IBOutlet,IBAction一起用
+		直接加到最前面修饰
+		class MyViewController: UIViewController {
+			@IBOutlet weak var button: UIButton!				--属性直接最前面, 属性仍有类型
+			@IBOutlet var textFields: [UITextField]!
+			@IBAction func buttonTapped(_: AnyObject) {			--方法直接最前面, 不影响其他部分.
+				print("button tapped!")
+			}
+		}
+		
+	5.2 实时渲染:	@IBDesignable ,@IBInspectable		(需要实践)
+		用在自定义的UIView子类, 可以实时看到自定义View的样子.
+		
+		@IBDesignable								--designable放在自定义View类名上方
+		class MyCustomView: UIView {
+			@IBInspectable var textColor: UIColor	--inspectable放在属性上, 就可以Inspector中修改它们了.
+			@IBInspectable var iconHeight: CGFloat
+		}
+		
+		
+	
+6. 指定属性的修饰(即attribute)
+	
+	6.1 strong和weak
+		只能用于可选型class属性, 因为可设为nil + 引用类型. 非?型不能加weak,strong咯
+			
+	6.2 readonly和read/write
+		swift中的储存属性用let,var是否只读,  计算型用get, get+set设置是否只读
+		
+	6.3 copy 
+		OC的copy被翻译成@NSCopying, 能被copy的属性要实现NSCopying协议
+		
+	
+	
+7. 实现CoreData Managed Object的子类
+	使用 @NSManaged 来告诉swift编译器此对象是coreDate存储对象的.
+	
+	import CoreData
+	class Person: NSManagedObject {						--就是entity, @NSManaged修改元素和方法
+		@NSManaged var name: String	
+		@NSManaged func addFriendsObject(friend: Person)
+	
+	
+	
+--------------------使用Cocoa的数据类型 data type------------------------------------------------
+1. String
+	自动转为NSString
+	let str1 = "hello"
+	let str2:NSString = "hello"
+	
+	NSString可以确定转为String, 不用?的.   
+	let str3 = str2 as String 
+
+1.1 本地化
+	在OC中使用NSLocalizedString的宏命令家族来本地化String, 
+	包括:NSLocalizedStringFromTable ,NSLocalizedStringFromTableInBundle ,NSLocalizedStringWithDefaultValue
+
+	let format = NSLocalizedString("Hello, %@!", comment: "Hello, {given name}!")	--相当于格式化.
+	let zhCN = "你好"
+	let greeting = String(format: format, arguments: [name])
+	print(greeting)		--打印: Hello,你好!
+
+	
+	从App的Bundle资源中取本地化内容:
+	if let path = NSBundle.mainBundle().pathForResource("Localization", 
+			ofType: "strings", inDirectory: nil, forLocalization: "ja"),		--ja是日本
+		let bundle = NSBundle(path: path) {
+		let translation = NSLocalizedString("Hello", bundle: bundle, comment: "")
+		print(translation)		--打印:こんにちは
+	}
+	
+2. 数字
+	swift会自动转换原生的数值(如Int,Float)到OC的NSNumber.
+		let a = 10 
+		let b:NSNumber = a 
+	
+	Int,UInt,Float,Double,Bool可以转换成NSNumber
+	
+	注意:转换前不能用于AnyObject, 在转换后成NSNumber类型了可转换成AnyObject了.
+	
+	
+	
+3. 集合类
+	如NSArray转换为Array, 则都是 [AnyObject],   除非定义时加了<>才会同类型转化:
+		NSArray ->[AnyObject]
+		NSArray<NSDate *>  -> [NSDate]
+	
+	NSArray转换为[AnyObject]后,可以向下转换类型的.
+		let swiftArr = ocArr as [AnyObject]		--确定是AnyObject, 只用as
+		if let arr = swiftArr as? [NSDate] {	--转换试试, 用as?. 当明确元素类型,则用as好.
+		}
+		
+		
+	在定义swift数组时, 可加类型直接成为OC的数组
+	let arr:NSArray = ["a","b"]
+	
+	
+	Set<> 暂略
+	
+	
+	Dictionary:
+	NSDictionary的非参数化类型转换为[NSObject:NSAnyObject].   (即内容都是对象)
+	
+	同上在swift中定义字典也可加NSDictionary
+	let dic:NSDictionary = ["A":"123", "B":"456"]
+	
+	
+4. Error 错误转换
+	NSError <-->　ErrorType
+	即使结合使用, swift中要用@objc修饰.
+	
+
+5. 功能数据, 功能方法
+	直接引用的结构体or系统方法, 如CGSize, NSLog()可直接用
+	let a = CGSize(width:10,height:10)
+	let b = a.width 
+	
+	NSLog("%.7f",pi)	--pi也是直接调的. 打印PI的后七位小数: 3.1415927
+	
+	
+	
+6. 核心功能 Core Foundation: CF开头
+	直接IOS,OSX核心功能, 多数C编写. 核心功能自动转换为swift的类.
+	
+	6.1 重映射类型 CFTypeRef
+		以前用到CFTypeRef的地方, 都要换成AnyObject
+		
+	6.2 内存管理类
+		不需要引入CFRetain, CFRelease, or CFAutorelease这些了.
+		
+	6.3 未管理类:UnmanagedObject
+		当swift导入的API无注释, 则不能自动内存管理这些CF对象. 
+		swift转换这些到Unmanaged<Instance>结构中了.
+	
+		示例: 未注释的C函数
+			CFStringRef StringByAddingTwoStrings(CFStringRef s1, CFStringRef s2)
+			func StringByAddingTwoStrings(_: CFString!, _: CFString!) -> Unmanaged<CFString>! {
+			}
+			--返回类型修饰
+			
+		当你取得一个unmanaged object时, 你应该立即转换它. swift会处理它们的内存管理,用两个方法:
+		takeUnretainedValue(),takeRetainedValue(); 它们都返回原始的类型,
+		示例:
+			let memoryManagedResult = StringByAddingTwoStrings(str1, str2).takeUnretainedValue()
+			// memoryManagedResult is a memory managed CFString	
+
+
+			
+------------------- 采用Cocoa设计模式 -----------------------------------------
+很多优秀的程序使用了Cocoa的设计模式, 大多数设计模式写在ObjC中,
+由于swift与ObjC有兼容性, 仍可以使用这些设计模式.
+
+
+1. 代理模式 Delegation
+	swift中使用if let判断,以及可选项链调用来使用代理
+	class Dele:NSObject, NSProtocol1{		--代理类, 实现代理协议
+		func mtd(p1,p2) -> NSString {
+		}
+	}
+	var myDele:NSProtocol1? = Dele()		--可选型代理属性.
+	if let str = myDele?.mtd?(p1,p2){		--调用?型代理, 使用?链.
+		print(str)
+	}
+	
+2. 懒初始化模式: lazy initialization
+	一个懒属性是在类声明时有赋值, 实例化时却没值. 直到访问到此属性时才会加载值.
+	是非常有用的, 当需要复杂or计算昂贵的时候.
+	在OC中, 是重写synthesized的getter方法, 在其中判断_prop==nil时再初始化它.
+	
+	
+	
+3. 异常处理模式
+	在Cocoa中,方法错误了会将NSError指针参数作为last参数, 如
+		- (BOOL)removeItemAtURL:(NSURL *)URL      error:(NSError **)error;
+	swift会自动转换此类异常, 通过swift的原始异常处理方式 throw.
+		func removeItemAtURL(URL: NSURL) throws			
+		
+	注意变化:  BOOL返回就为Void, error参数消除了, 最后加throw.	
+	
+		
+	3.1 捕获异常 处理异常
+		OC中的异常方式:
+			NSError *error = nil;
+			BOOL success = [fileManager moveItemAtURL:URL toURL:toURL error:&error];
+			if (!success) {		
+				NSLog(@"Error: %@", error.domain);			--通过异常返回BOOL, 打印error的内容
+			}
+		swift中异常方式:
+			do {
+				try fileManager.moveItemAtURL(fromURL, toURL: toURL)
+			} catch NSCocoaError.FileNoSuchFileError {			--同java一样, do-try-catch处理异常.
+				print("Error: no such file exists")
+			} catch NSCocoaError.FileReadUnsupportedSchemeError {
+				print("Error: unsupported scheme (should be 'file://')")
+			}
+
+	3.2 转换异常为nil: try?
+	
+	3.3 主动抛出异常
+		OC中方式:
+			if (errorPtr) {
+			   *errorPtr = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorCannotOpenFile userInfo:nil];
+			}
+		swift的方式:
+			throw NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotOpenFile, userInfo: nil)
+			
+		--throw抛出NSError对象, 对象构方参数设置内容	
+		
+		
+	3.4 KVO设计模式: Key-Value Observing
+		KVO机制, 当A对象的某属性值变化立即通知BCDE对象.
+		
+		3个步骤swift中添加KVO:
+		1. 监听属性前加dynamic修饰:
+		class MyObjectToObserver:NSObject{
+			dynamic var name = "hello"
+			func updateName(name:String){		--调用它则监听属性值改变, 引发KVO
+				self.name = name
+			}
+		2. 创建全局上下文属性
+			private var myContext = 0
+			
+		3. 把监听添加到路径,  重写observeValueForKeyPath:方法,  还要在deinit中删除此监听哦.
+		
+		class MyObserver:NSObject{								--这个才是监听类
+			var objToObserver = MyObjectToObserver()	--创建被监听类
+			override init(){							--初始时即添加监听, 重写构方
+				super.init()
+				objToObserver.addObserver(self,
+					forKeyPath:"name",					--被监听的属性名.
+					option:.New, context:&myContext)
+			}
+			
+			override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
+				if context == &myContext {
+					if let newValue = change?[NSKeyValueChangeNewKey] {		--改变后的新值?  这个要多挖掘呀.
+						print("Date changed: \(newValue)")
+					}
+				} else {
+					super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: context)
+				}
+			}
+			deinit {
+				objectToObserve.removeObserver(self, forKeyPath: "myDate", context: &myContext)
+			}
+		}
+		
+		解释:上下文UnsafeMutablePointer类型却是Int, 在添加监听时作参, 在重写监听方法时判断它,如不是此上下文则..哦?
+			原来可以有多个context对应多个监听方法来监听多个属性,  在重写的监听方法中判断是哪个上下文即可啦. 最后的else{}内调用super的监听.
+		
+			change?是字典,保存了监听属性改变前后的值和其他特性值(待挖掘), 要用特定Key名取.
+			
+			
+			
+4. Undo(取消)模式
+	在Cocoa,用NSUndoManager注册操作可以获得反向操作效果(撤消呗). swift可利用它
+	对象在App的响应链中, 即UIResponder的子类有一只读属性undoManager, 它管理App的Undo Stack.
+	
+	NSUndoManager有两种方式注册Undo操作:
+		1. 简单Undo,
+		2. 基于调用的Undo,  
+		
+		--需要的时候再看吧
+		
+		
+5. 单例模式
+	OC:
+	+ (instancetype)sharedInstance {
+		static id _sharedInstance = nil;
+		static dispatch_once_t onceToken;
+		dispatch_once(&onceToken, ^{
+			_sharedInstance = [[self alloc] init];
+		});
+	 
+		return _sharedInstance;
+	}
+	swift:
+	可以简单地用static修饰本类型属性, static可保证懒加载一次, 即使多线程亦然.
+	class Singleton {
+		static let sharedInstance = Singleton()		--static且是let常量 
+	}
+	
+	如单例对象需额外的设置,则可用全局常量使用闭包(不是计算型属性哦)
+	class Singleton {
+		static let sharedInstance: Singleton = {	--static,let常量,
+			let instance = Singleton()
+			//设置代码
+			return instance
+		}()
+	}
+	
+	
+	
+6. 内省模式
+	在OC中, 可以用isKindOfClass:,conformsToProtocol判断是否继承or实现某类/协议.
+	swift中则可以用 is, as?!实现,  用以判断和类型转换.
+	
+	
+	
+7. 序列化: object <--> 文件
+	序列化可以把对象编码后存储到文件中,如JSON或property list(plist); 或从文件中解码出对象到内存.
+	
+	在OC中用NSJSONSerialiation,NSPropertyListSerialization类来操作.
+	在swift中, 由于类型安全机制, 需要额外转换步骤
+	示例:
+		将JSON转为某struct, 最终调用此struct实例
+	struct Venue {
+		enum Category: String {
+			case Entertainment
+			case Food
+			case Nightlife
+			case Shopping
+		}
+		var name: String
+		var coordinates: CLLocationCoordinate2D		--此也是strut
+		var category: Category						--枚举
+	}
+	添加可选型构造方法,来转化Dictionary成实例
+	init?(attributes: [String: AnyObject]) {
+		guard let name = attributes["name"] as? String,				--保证这些赋值成功, 否则返回nil
+			let coordinates = attributes["coordinates"] as? [String: Double],	--guard用,号分隔,不是&&哦
+			let latitude = coordinates["lat"],
+			let longitude = coordinates["lng"],
+			let category = Category(rawValue: attributes["category"] as? String ?? "Invalid")
+		else {
+				return nil
+		}
+		self.name = name								--上面赋值都是property中完全细分后赋值.
+		self.coordinates = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+		self.category = category
+	}
+	将JSON转为实例:
+	let JSON = "{\"name\": \"Caffè Macs\",\"coordinates\": {\"lat\": 37.330576,\"lng\": -122.029739},\"category\": \"Food\"}"
+	let data = JSON.dataUsingEncoding(NSUTF8StringEncoding)!				--先UTF8转换
+	let attributes = try! NSJSONSerialization.JSONObjectWithData(data, options: [])
+			as! [String: AnyObject]			--再调用方法,JSON->Data转换, 转换好再强制转为Dictionary
+	let venue = Venue(attributes: attributes)!
+	print(venue.name)
+
+	
+	
+7.1 验证序列化表现
+	上面的init?必须全部属性都有值才成功,一项没有就是nil.
+	可以每个条件加上验证,无则返回原因(报下异常or其他)
+	enum ValidationError: ErrorType {
+		case Missing(String)			--缺失某元素Error
+		case Invalid(String)			--错误类型Error
+	}
+	init(attributes: [String: AnyObject]) throws {
+		guard let name = attributes["name"] as? String else { 		
+			throw ValidationError.Missing("name")
+		}
+		guard let coordinates = attributes["coordinates"] as? [String: Double] else {
+			throw ValidationError.Missing("coordinates")
+		}
+		guard let latitude = coordinates["lat"], let longitude = coordinates["lng"]
+			else {
+				throw ValidationError.Invalid("coordinates")		--这个怎么就能是非法呢, 也可以是没有值呀?  实践试喽
+		}
+		guard let categoryName = attributes["category"] as? String else {
+			throw ValidationError.Missing("category")
+		}
+		guard let category = Category(rawValue: categoryName) else {
+			throw ValidationError.Invalid("category")
+		}
+		//省略属性赋上面的值
+	}
+	//省略 JSON转换
+	do {
+		let venue = try Venue(attributes: attributes)
+	} catch ValidationError.Missing(let field) {			--直接Enum.Elem(let temp)啦,好.
+		print("Missing Field: \(field)")
+	}														--应该还要加另一个catch
+	
+	
+	
+	
+	
+8. API可用性
+	有些class,method等不是所有平台,版本都能用的.
+	为确保App在功能上适应任何变化, 你要验证API的要用性.
+
+	在OC中, 用respondsToSelector:,instancesRespondToSelector:验证class和instance method.
+	如没加而异常,会报NSInvalidArgumentException和“unrecognized selector sent to instance”内容.
+	示例:
+	if ([CLLocationManager instancesRespondToSelector:@selector(requestWhenInUseAuthorization)]) {
+	  // Method is available for use.
+	} else {
+	  // Method is not available.
+	}
+	swift:
+	if #available(iOS 8.0, OSX 10.10, *) {
+		locationManager.requestWhenInUseAuthorization()
+	}
+
+
+	设置自己代码可作用于的版本:@available 
+	@available(iOS 8.0, OSX 10.10, *)			--代码我的这个方法只能用于iOS 8.0及以后
+	func useShinyNewFeature() {
+		// ...
+	}
+	
+	
+
+9. 处理单行命令参数
+	用于OSX
+	
+	
+-------------- 与C语言的API交互 ---------------------------------------------
+作为与OC兼容性的一部分, swift维持一些C语言类型与特性的交互.
+
+
+1. 原始类型
+	bool	-->  CBool	 类型名转化
+	int 	-->  CInt
+	...
+
+这些以后用到再看吧
+
+====================== 混合与匹配 (需要实践)==============================================
+http://www.cnblogs.com/kenshincui/p/4824810.html#accessControl
+可以看这个,  前辈有翻译介绍总结.
+
+swift和ObjC用在同一个Project中.
+可在老ObjC项目中使用swift最新的特性,  一个项目可既包含ObjC文件,又包含swift文件.
+
+
+1. 项目内导入另一种语言文件
+	混合App中,可能会在swift中调用ObjC文件, 也可能ObjC文件调用swift文件.
+	
+1.1 导入OC到swift
+	Xcode会创建header文件,  OC bridge header.		--要实践
+		-Bridging-Header.h
+		
+	1. 在创建的bridge头文件中, 导入所有swift需要的.h
+	2. ....
+	
+1.2 导入swift到OC中.
+	
+	
+2. 在framework内导入另一种语言文件
+	自己写的框架...
+	
+	
+	
+	
+3. 导入外部框架
+	
+4....
+
+
+================== 迁移你的OC代码到swift  ======================================

@@ -1,0 +1,78 @@
+1. ios8之后出现了size class
+	把不同大小更抽象了下, 宽/高只分两类: compact和regular(紧凑和正常), 另还有any(无所谓)
+	
+	而不同设备的size class被分为:
+	1. iphone6及以下
+		竖屏: 宽=小,高=大; 横屏: 宽高=小
+	2. iphone6 plus
+		竖屏: 宽=小,高=大; 横屏: 宽=大,高=小
+	3. ipad所有
+		宽高=大.
+	总结为: pad都是大,plus都是大小都在, iphone6则分两种:竖时大小, 横时都小.
+	
+2. size class的作用效果
+	如设置Wregular/Hregular, 则此时的autolayout只适用于ipad,
+	当Wcom/Hreg, 则适用于iphone6 plus.
+	当Wreg/HCom, 则适用于plus横屏.
+	
+	如既要适配ipad又要适配plus, 则reg/reg一套,com/reg一套设置.
+	//注意还有any/com,或者 reg/any这些一半any的情形.
+	
+
+
+Masonry 开源autolayout框架
+
+	修改约束值时, constraint是长度值,multipler是比例, 如0.4
+	右键拉view1到view2后, 按住shift可多选
+	
+
+
+------------------------VFL visual format language---------------------------------
+1.是代码设置autolayout的简化语言
+2.view.translatesAutoresizingMaskIntoConstraints=NO
+3.NSLayoutConstraint +constraintsWithVisualFormat:VFL options: metric: views: dic
+4.UIView -addConstraints:
+
+例子:
+	UIButton *btn = [xxx];
+	[self.view addSubView:btn];
+	NSArray *constraints1 = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|-[btn]-|"
+　　　　　　　　　options:0
+　　　　　　　　　metrics:nil
+　　　　　　　　　views:NSDictionaryOfVariableBindings(button)];   //最后方法可多个参数
+	NSArray *constraints2 = [xx...     @"V:|-20-[btn(==30)]"   ....
+	[self.view addConstraints:constraints1]; 和constraints2
+
+讲解: "H:|-[btn]-|", H:表示水平; 冒号指向后面表达式; | 表示左边缘和右边缘;
+	 -或者-20- 表示间隔空间(与边缘默认20px,与其他组件默认8px).
+	完整语义为: 水平方向:btn与左边缘和右边缘的距离为20.
+
+      "V:|-20-[btn(==30)]", V:表示垂直; |-20-[btn]表示与上边缘距离20px; 
+	 [btn(==30)]表示高度为30px.(等于也可为>,<=等,或(>=30,<=40),也可加优先级(>=30@1000));
+	完整语义为: 垂直方向:btn与上边缘距离20, 自身高度为30.
+
+
+多个控件相关联时: 1.先固定一个, 2.后面的再参照前面的.
+
+  btn2:   @"H:|-[btn2]-|"; 
+	  @"V:[btn]-8-[btn2(==30)]" ,NSDictionaryOfVariableBindings(btn,btn2)
+
+
+动态设置距离,大小等数值:
+	@"V:[btn]-8-[btn2(==height)]" 并且 metrics:@{@"height",@30}  
+	//此为Dictionary的json, 前面的height映射于后面的key	
+
+设置两个控件等宽/等高.
+   还是btn2上设置:  @"H:|-[btn2(btn)]"       btn2的宽度==btn的宽度
+		    @"V:[btn]-[btn2(btn)]"   btn2上边距btn为8px, btn2的高度==btn的高度
+
+
+ 注意: 1.若是属性的话, 不是self.xx, 而是_xx,调用get可能是计算结果了.
+ 	2.metris:后的值不能用 []框.
+
+
+UILable动态布局: 长度随文字自动变化
+	label.text = @"不同长度的文字";
+	label.numberOfLines = 0;
+	label.lineBreakMode = NSLineBreakByCharWrapping; //保留整个字符串. 其他的有:以空格为界,前/后...替代
+	

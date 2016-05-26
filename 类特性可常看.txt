@@ -1,0 +1,8 @@
+
+UIView
+	userInteractionEnabled   能否交互, 关闭则不响应事件\手势
+	exclusiveTouch		独一touch. 阻止同一窗口里其他view响应事件. (窗口是UIWindow吗)
+	maskView		遮罩层	怎么用的呢?
+	tintColor		线条色相关, 继承parent或system
+	motionEffects		体育运动相关, UIDynamic吗?
+	focused			是否focused,只读的. 如何设置focuse呢

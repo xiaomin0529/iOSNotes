@@ -1,0 +1,113 @@
+
+NSDate,NSDateComponents, NSCalendar
+
+---------------- NSDate  ----------------------------------
+NSDate存储的是世界标准时(UTC)，输出时需要根据时区转换为本地时间
+Date对象是不可改变的
+	NSDate *now = [[NSDate alloc] init];
+
+	//生成带一段间隔的日期
+	NSTimeInterval secondsPerDay = 24 * 60 * 60;  
+	NSDate *tomorrow = [[NSDate alloc] initWithTimeIntervalSinceNow:secondsPerDay];    
+        NSDate *yesterday = [[NSDate alloc] initWithTimeIntervalSinceNow:-secondsPerDay]; 
+	或者
+	NSDate *tomorrow, *yesterday; 
+	tomorrow = [today dateByAddingTimeInterval: secondsPerDay];    
+	yesterday = [today dateByAddingTimeInterval: -secondsPerDay];
+	日期比较 
+	isEqualToDate:, compare:,, laterDate: , earlierDate:
+
+	当两个日期发生在同一分钟逻辑相等的话:
+	if (fabs([date2 timeIntervalSinceDate:date1]) < 60) , 同一天则:24*60*60
+	还有与当前时间间隔
+	timeIntervalSinceNow 属性
+
+
+NSDate与NSString互转, 使用NSDateFormatter
+	fmt.dateFormat = @"yyyy..";
+	[fmt dateFromString:@""];
+	[fmt stringFromDate:date];
+
+如要标准时区格式的话:
+	NSLocale *usLocale = [[NSLocale alloc] initWithLocaleIdentifier:@"cn_ZH"];
+	[dateFormatter setLocale:usLocale];
+	[fmt stringFromDate:date];
+
+
+------------------NSCalendar, NSDateComponents -------------------------------------------------
+例子:
+	unsigned unitFlags = NSYearCalendarUnit | NSMonthCalendarUnit |  NSDayCalendarUnit;
+	NSDate *date = [NSDate date];
+	NSDateComponents *comps = [gregorian components:unitFlags fromDate:date];
+
+	int year = [coms year];
+	int month = [coms month];...
+
+	从日历中提取的日期信息,被包装成一个components对象了,
+
+
+	获取日历
+	[NSCalendar currentCalendar];
+	格里高利历
+	NSCalendar *gregorian = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar]; 
+
+
+	组件转成NSDate
+	NSDate *date = [calendar dateFromComponents:components];
+
+	计算出一周的第一天（根据系统的日历设置）
+	NSDate *today = [[NSDate alloc] init];    
+	NSDate *beginningOfWeek = nil;    	
+	BOOL ok = [gregorian rangeOfUnit:NSWeekCalendarUnit startDate:&beginningOfWeek interval:NULL forDate: today]; 
+
+	两个日期之间的间隔
+	NSDate *startDate = ...;    
+	NSDate *endDate = ...;    
+	NSCalendar *gregorian = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];    
+	NSUInteger unitFlags = NSMonthCalendarUnit | NSDayCalendarUnit;    
+	NSDateComponents *components = [gregorian components:unitFlags fromDate:startDate toDate:endDate options:0];    
+	NSInteger months = [components month];    
+	NSInteger days = [components day];
+
+
+	 获得当前星期中的星期天
+	NSDateComponents *weekdayComponents = [gregorian components:NSWeekdayCalendarUnit fromDate:today]; 
+	NSDateComponents *componentsToSubtract = [[NSDateComponents alloc] init];    
+    
+	[componentsToSubtract setDay: 0 - ([weekdayComponents weekday] - 1)];    
+	NSDate *beginningOfWeek = [gregorian dateByAddingComponents:componentsToSubtract toDate:today options:0];    
+	NSDateComponents *components = [gregorian components:(NSYearCalendarUnit | NSMonthCalendarUnit | 	NSDayCalendarUnit) fromDate: beginningOfWeek];    
+	beginningOfWeek = [gregorian dateFromComponents:components];
+
+
+
+
+
+	判断一个日期是否在当前一周内
+	-(BOOL)isDateThisWeek:(NSDate *)date {    
+    
+     NSDate *start;    
+     NSTimeInterval extends;    
+    
+     NSCalendar *cal=[NSCalendar autoupdatingCurrentCalendar];    
+     NSDate *today=[NSDate date];    
+    
+     BOOL success= [cal rangeOfUnit:NSWeekCalendarUnit startDate:&start interval: &extends forDate:today];    
+    
+     if(!success)    
+        return NO;    
+    
+     NSTimeInterval dateInSecs = [date timeIntervalSinceReferenceDate];    
+     NSTimeInterval dayStartInSecs= [start timeIntervalSinceReferenceDate];    
+    
+     if(dateInSecs > dayStartInSecs && dateInSecs < (dayStartInSecs+extends)){    
+          return YES;    
+     }    
+     else {    
+          return NO;    
+     }    
+
+
+
+
+

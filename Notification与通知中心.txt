@@ -1,0 +1,106 @@
+﻿推送与通知的区别
+  推送可以看到的, 如本地推送\远程推送
+  通知是看不到的, 只能app中对象获取,然后作出相应操作.
+
+
+
+
+http://www.tuicool.com/articles/2yqQneR  还未看, 通知,delegate,block的区别
+http://www.mamicode.com/info-detail-515516.html  比上面还多KVO等.
+
+--------------------------------------------------------
+
+通知中心NSNotificationCenter
+
+对象可以向center中发布通知, center再向observers广播通知.
+
+Center是个单例对象, 同UIApplication一样获取.
+
+
+----------通知--------------
+一个通知一般包含三个属性:
+	string *name; 通知名称
+	id object;	  发布者
+	dictionary  userInfo;  传递信息(A想发给B的信息内容)
+	
+-----------Center发布通知 --------------
+-postNotification:(NSNotification *)notification
+	Center发布通知, 可在 notification对象中设置name,id,info
+	
+-postNotificationName:(NSString *)name object:(id)obj
+	发布名为name的通知, obj为发布者
+	
+-postNotificationName:(NSString *)name object:(id)obj userInfo:(NSDictionary *)userInfo
+	同上,name,obj,info都有
+	
+--------- 注册通知监听 observer--------------------------------
+-addObserver:(id)obsever selector:(SEL)sel name: object:
+	//observer即谁接收这个通知
+	//selector:收到通知后, 回调这个方法
+	//name: 监听的通知名. 若为nil, 则不管哪个对象发布的, 只要是name名都接收.
+	//object:发布者.  若name和object都为nil, 则observer能收到所有通知.
+	
+	//sel传递的方法
+	-(void)notici:(id)sender{} //此sender就是发布时的userInfo
+	
+-(id)addObserverForName:(NSString *)name object:(id)obj
+	queue:(NSOperationQueue *)queue usingBlock:(void (^)(NSNotification *note))block;
+
+---------取消注册,即删除监听 -------------------
+在Center注册过的对象, 必须在对象释放衣删除监听. 否则仍然会通知obj,会异常
+-removeObserver:(id)observer
+-removeObserver:(id)observer name:(NSString *)aName object:(id)anObject
+
+一般在监听器对象销毁前,删除通知
+- (void)dealloc {
+	 [[NSNotificationCenter defaultCenter] removeObserver:self]
+}
+
+
+----------- 设备信息的通知 UIDevice------------------------------
+UIDevice通知提供一个单例, 它代表设备信息,如电池电量\状态,设备类型(phone/pad),系统...
+
+屏幕旋转	UIDeviceOrientationDidChangeNotification
+电池电量改变  UIDeviceBatteryLevelDidChangeNotification
+近距离传感器(如贴近脸部)  UIDeviceProximityStateDidChangeNotification
+
+
+
+-------------键盘通知 --------------------------
+有时需要在键盘出现或消失前做一些操作.
+ UIKeyboard---开头
+ 
+// 键盘即将显示
+// 键盘显示完毕
+// 键盘即将隐藏
+// 键盘隐藏完毕
+// 键盘的位置尺寸即将发生改变
+// 键盘的位置尺寸改变完毕
+
+
+---------通知和代理的选择  Notification VS  Delegate -----------------------------------------
+1. 共同点
+	都能完成对象之间的通信(解ou的)
+
+2. 不同点
+	delegate: 一对一关系, 一对代理对象只能告诉另一对象信息
+	notification: 多对多关系. 1个发布者能通知N个监听; 1个监听能接收多个发布者的信息
+
+
+
+=================== 推送 ================================
+推送的作用: 
+	让不在前台的app, 有能力告诉用户我这app发生了什么事.
+	
+效果:
+	屏幕顶部横幅,中间弹出alert,播放声音,锁屏时照样弹出
+	图标显示数字,拉下通知中心里能显示
+	
+
+-------------- 本地推送  ---------------------------------------------------
+即不需要联网就能发送
+
+
+---------------远程推送 ------------------------------
+必须要使用苹果的APNs的服务器进行联网推送. 
+

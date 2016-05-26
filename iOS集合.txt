@@ -1,0 +1,142 @@
+官网集合介绍
+https://developer.apple.com/library/ios/documentation/Cocoa/Conceptual/Collections/Collections.html#//apple_ref/doc/uid/10000034i
+
+
+比较好的介绍
+http://www.tools138.com/create/article/20150307/020015325.html
+
+
+
+---------- NSArray,NSDictionary,NSSet ----------------------------------------------------
+有序数组, 键值对, 无序Set.  都是初始时固定元素的, 不可变
+
+NSMutableArray, NSMutableDictionary, NSMutableSet
+   可变的数组, 可变的键值对, 可变的Set
+
+
+
+--------------1. 数组, 可变数组 ----------------
+NSArray 不可变数组, 一旦创建不可添加,删除
+
+	NSArray * array1 = [NSArray arrayWithObjects:@"one",@"two",@"three", nil];
+	NSArray * array2 = [[NSArray alloc] initWithObjects:@"one",@"two",number, nil];
+	NSArray * karray = @[0.1];
+
+	获取元素
+	NSString * str = [array objectAtIndex:5];
+	//获得数组的元素个数
+	NSUInteger arrayCount = [array count];
+	// 判断数组中是否存在某个对象
+	BOOL isContain = [array containsObject:id];
+
+	特性：
+	1.数组中可以存储不同类型的对象
+	2.数组实际上存储的时对象的地址,同样也可以存储数组的地址
+	3.存储自定义的对象 （最好都给我重写 description方法）
+	4.数组中存储基本数据类型, （如果你要在数组中存储基本数据类型,请包装好了之后再去存 NSNumber）
+	5.注意不要把nil值存储到NSArray中,会导致数据丢失
+
+   排序:
+	@Selector排序
+	array = [array sortedArrayUsingSelector:@selector(compare:)];
+	block排序
+	array = [array sortedArrayUsingComparator:^NSComparisonResult(id obj1, id obj2) {
+		 return [obj2 compare:obj1];}
+	自定义对象排序: 
+	NSSortDescriptor * d1 = [NSSortDescriptor sortDescriptorWithKey:@"username" ascending:NO];
+	NSSortDescriptor * d2 = [NSSortDescriptor sortDescriptorWithKey:@"age" ascending:YES];
+	array = [array sortedArrayUsingDescriptors:@[d1,d2]];
+
+
+
+NSMutableArray  创建完可添加\插入\删除元素
+	NSMutableArray * array = [[NSMutableArray alloc] initWithCapacity:0];  //初始容量为0
+	[array addObject:str1];
+	[array insertObject:str1 atIndex:2];
+
+	//通过对象删除,删除数组中所有的同一个地址的对象
+	[array removeObject:str1];
+	//通过索引删除,超出count值就会导致异常 index beyond bounds
+	[array removeObjectAtIndex:0]
+	[array removeAllObjects];
+
+
+
+------------- 字典, 可变字典 ----
+NSDictionary 对象初始后元素数不可变, 不能添加删除
+	NSDictionary * dic = [NSDictionary dictionaryWithObjectsAndKeys:@"apple",@"name", nil];
+	NSDictionary * dic = @{ @"one":@"1",@"two":@"2"};
+
+	字典长度
+	int length = dic.count;
+	获取value值
+	NSString * str  = [dic objectForKey:@"one"];
+	遍历
+	NSArray *keys = [dic allKeys];
+	for (int i=0;i<keys.count;i++) {
+		NSString *key = [keys objectAtIndex:i];
+		id obj = [dic objectForKey:key];
+	}
+	枚举器
+	NSEnumerator * enumerator =  [dic3 objectEnumerator];
+	id value;
+	while(value = [enumerator nextObject]) {
+	     //value
+	}
+
+
+
+NSMutableDictionary  可变字典, 初始化后可添加/插入/删除
+	NSMutableDictionary  *dic = [NSMutableDictionary  dictionaryWithCapacity:0];
+	
+	添加或覆盖, 当value是空时, 用NSNull替代nil;
+	setObject:@"abc" forKey:@"name"
+
+	追加/替换字典: 参数是NSDictionary
+	dic = [dic addEntriesFromDictionary:d2];
+	[dic setDictionary:d2];
+
+	删除单个元素
+	removeObjectForKey:@"abc"
+	删除多个元素
+	removeObjectsForKeys:@[@"a", @"b"]
+	删除所有元素
+	removeAllObjects
+
+	
+
+-------------------NSSet, NSMutableSet --------------------------------------
+  NSSet 是无序的. 也是数据不重复的, 可用它去除重复数据.
+	NSSet * set = [[NSSet alloc] initWithObjects:str1,str2,str1,nil];
+
+	遍历
+ 	NSEnumerator * enumerator = [set objectEnumerator];
+	NSString * value;
+	while (value = [enumerator nextObject]) {
+	    NSLog(@"value %@",value);
+	}
+
+	方法大体可NSArray一致. MutableSet的也和MutableArray的一致, 没有排序的
+
+=============== 集合相互转换 ===================================
+1.NSArray 转换成 NSMutableArray
+	NSArray * array = @[@"one",@"two",@"three"];
+	NSMutableArray * muArray = [NSMutableArray arrayWithArray:array];
+2..NSDictonary 转换成 NSMutableDictionary
+	NSDictionary * dic = @{@"one":@"1",@"two":@"2"};
+	NSMutableDictionary * muDic = [NSMutableDictionary dictionaryWithDictionary:dic];
+3.NSset 转换成 NSMutableSet
+	NSSet * set = [[NSSet alloc] initWithObjects:@"one",@"two", nil];
+	NSMutableSet *muSet = [NSMutableSet setWithSet:set];
+
+4.NSArray 转换成NSSet
+	NSMutableSet * muSet2 = [NSMutableSet setWithArray:array];
+
+5.NSDictionary 转化成NSArray
+	NSArray * allkeys = [dic allKeys];
+	NSArray * allValues = [dic allValues];
+
+
+
+
+

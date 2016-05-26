@@ -1,0 +1,1446 @@
+
+1. Hello world
+  创建文件OS X--Application--Command line Tool--选择Objective-C
+
+  代码解析:
+  #import <Foundation/Foundation.h>  		
+  int main(int argc, const char *argv[]) {
+    @autoreleasepool {
+	//
+    }
+  };
+
+  //#import同C的 #include,但已处理了重复导入的问题. 即不需要#ifndef 判断了
+    Foundation是OC基础类库.
+    @autoreleasepool是OC关键字,作用是对里面的代码自动回收内存. 和java机制不同.
+
+OC语法特点: 它没有命名空间和包的概念. 因此整个工程都不能有两个同名的类.(java可以:util.Date,sql.Date)
+
+
+main()方法 
+都是程序的入口。 不同于java中方法属于类，OC中main()不属于任何一个类，
+
+main()上边可以加@interface,@implementation 来定义完事类。
+.m中不能既定义@interface,又定义@implementation, 引用此类时会编译失败。
+
+所以OC类，只能.h+.m，或者在main.m中的main()上面编写[这种只是临时呀]
+
+
+--------------成员变量 和 属性-----------------------------------------
+.h
+@interface Person:NSObject{
+    @private	
+    Obj *obj;	  	//{}里是[成员变量]
+}
+@property int age;  	//property的都是[属性]
+-(int)mtd:(Obj *) o;   	//方法
+@end
+
+访问变量和属性:
+ Person *person = [Person new];
+ person->name = @"AAA";  //变量赋值. 成员变量的调用使用 -> 操作符，私有的调不到。
+ person.name = @"BBB";   //给属性赋值
+
+
+//成员变量同属性. 只是表现不一样,实质是名字不一样.
+注意: 属性abc等于成员变量的_abc. 如果没有_abc变量,则会生成一个private _abc;
+	有的话则访问_abc变量(不管公有私有
+      
+      1.变量叫_name,属性叫name. 则person->_name;person.name; 两者值一样,都是BBB.
+      2.变量叫name, 属性叫name. 则person->name不等于person.name; 分属两个变量.一个name,一个private _name
+      3.无变量,有属性name, main类中调用 person->_name;  是生成_name变量了, 但却是private其他类访问不到.
+      4.属性叫_name, 报错.
+
+//private的访问不到, 则需要get/set方法了
+
+2. 属性和变量的getter/ setter方法
+//set方法同其他语言, get方法直接写名字(去掉_哦)
+.h声明 .m实现方法
+-(NSString *)name{ 
+   return _name;
+}
+-(void)setName:(NSString *)name { 
+   _name = name;
+};
+
+main调用: [person setName:@"AAA"]; 
+	   person.name=@"BBB";   //这个用真实调用setName方法.(在里面加NSLog实验出)
+   //这个不是get方法返回变量再赋值.虽然ctrl点击进的是get方法. 但实质上是set赋值.
+e.g 如果@private _name;和name(),setName()方法:
+   [person setName:@“setName”];
+    person.name = @“.name”;
+    NSLog(@“%@“,person.name = @“arg, .name”];
+	//打印出的是最后一个
+
+
+属性不需要明写get/set方法. 需要@synchesize. (另外valueForKey, setValue forKey也需要它)
+有属性name后，不能通过person->_name访问。 生成的变量是private的，仅方法访问。
+e.g @property+@synthesize name;无变量后：
+	[person setName:@“first”];
+	person.name = @“second”;
+	NSLog(@“%@”,person.name=@“third”);
+	//打印的结果是最后一个。
+
+
+注意: 1.已有变量_name,属性name,再声明get方法name(). 则会报错.
+	要么方法改为 _name(),要么属性name前加上 (nonatomic) ?
+      变量和属性都叫name, name()方法怎么返回name变量呢?  return name;太乱啦!!!
+
+      2. 有属性name, 同类中其他地方都可以用_name. (私有成员变量嘛). 而且使用_name是个好习惯哦!
+	(具体原因在self那有. 不加_时赋值的死循环)
+   
+      3. 在.m中, 不写@synchesize, 则不能访问property, 只能访问属性自动生成的_成员变量.
+	  写了@synchesize后, 能访问property, 却不能访问生成的_成员变量了....!
+	  正好相反呢, 同时只能访问其一.
+	好处: 加了synchesize, 不会因为name=@""而变成访问get/set方法. 因为只能用_name;
+
+        以后碰到: 有的只能用_,有的不能用_. 是因为没synchesize全. 要统一 
+
+
+
+大神说:
+  这个是历史原因造成的. 以前属性必须再写配套的变量. 
+   iOS5之后，不需要为属性，声明对应的成员变量，也不需要在 .m文件中 @synthesize 变量名，会自动生成get/set方法
+  成员变量用于类内部，无需与外界接触的变量
+  根据成员变量的私有性，为了方便访问，所以就有了属性变量。属性变量的好处就是允许让其他对象访问到该变量。
+      当然，你可以设置只读或者可写等，设置方法也可自定义。所以，属性变量是用于与其他对象交互的变量。
+
+  注意:
+	1. 如果只是单纯的private变量，最好声明在implementation里.
+	2. 如果是类的public属性，就用property写在.h文件里
+	3. 如果自己内部需要setter和getter来实现一些东西，就在.m文件的类目里用property来声明
+
+
+-----------反射的get/set方法,即KVC ----------------
+只用于synchesize后的
+setValue:@"123aaa" forKey:@"name"
+valueForKey:@"name"
+
+
+-----枚举, 结构体:-(它们的定义应该放在哪里呢?)-------------------
+//直接是C语言的
+
+@interface Person:NSObject{
+  @public
+  enum Sex {male,female};			//声明枚举和结构的类型
+  struct Date{int year;int month;int day;};
+
+  @private 
+  enum Sex _sex;			//声明枚举型,结构型的变量 (此时才分配内存)
+  struct Date _birth;
+}
+-(enum Sex) sex;
+-(void)setSex:(enum Sex) sex;		//方法的返回和参数类型都要加上enum type,struct type的.
+-(struct Date)birth;
+-(void)setBirth:(struct Date) birth;
+@end
+
+
+@implements Person
+
+-(enum Sex) sex{ return _sex; }				//get,set方法
+-(void)setSex:(enum Sex) sex{ _sex = sex;};		
+-(struct Date)birth { return _birth;}
+-(void)setBirth:(struct Date) birth { _birth.year = birth.year;... }
+@end
+
+
+int main(int argc,const char * argc[]) {
+  Person *person = [[Person alloc] init];
+  person->_name = @"xiaomin";			//@public的成员变量. 使用p->arg; 取值,赋值
+  [person setSex:male];				//枚举型可直接使用枚举类型.
+  struct Date birth = {1987,5,29};
+  [person setBirth:birth];	
+ 
+  NSLog(@"%i", [person sex]); //必须用方法返回. male打印是1.
+}
+
+
+
+
+---------OC 类和对象 --------------------------------------------------
+类结构
+
+//Person.h
+#import <Foundation/Foundation.h>
+@interface Person: NSObject {   //成员变量必须在{}内. 无变量则{}可选
+   @protected		//默认是@protected的,@private,@public
+   NSString *_height;
+ }
+@property int age;
+@end
+
+//Person.m
+#import "Person.h"
+
+@interface Person(){  //.m中的interface+end是可选的。形式.h中:继承， .m中()catagary分类。
+
+}
+
+@property int age2;	//.h,.m中都能声明property。.h中是第一次，.m中是分类扩展，任意次
+@end
+@implementation Person
+@end
+
+.h文件:  放类声明, 成员变量, 属性, 方法声明(只是声明) .h不参与编译过程
+   使用@public,@protected, @private控制属性可访问性
+   成员变量推荐以_开头.
+
+.m文件:  放属性,方法的实现. (包括.h中没有的私有方法)
+
+
+int main() {
+  Person *p = [[Person alloc] init];	//分配内存和初始化
+  p->sex = 1;  //->操作符直接操作public变量.(其他变量不行)
+
+}
+
+
+
+---方法: 
+在ObjC中使用“-”定义动态方法，使用“+”定义静态方法
+如果一个方法在.h中有声明则该方法是公共方法，
+如果没有在.h中声明直接在.m中定义则该方法是私有方法，外部无法访问。
+
+@interface Person:NSObject {
+   @public 			//括号内是成员变量
+   NSString *_name;
+   @private 
+   int sex;
+}
++(void) mtd:(NSString *info);   //静态方法
+-(void) mtd2:(int aa);		//动态方法
+@end
+
+@implements Person
++(void)mtd:(NSString *info) {}
+-(void)mtd2:(int aa) {}
+-(NSString *)mtd3:(NSString *name) {	//只在.m中的方法, 其他类无法import访问
+   return @"";   
+}
+
+@end
+
+//多参数方法:
+-(int)mtd:(int a) append:(int b) append:(int c)...;
+
+
+
+
+----------- self 关键字 ----------------------
+self不仅可以表示当前对象还可以表示类本身，
+  也就是说它既可以用在静态方法中又可以用在动态方法中. (this就不能出现在static方法中)
+
+-(void)mtd{
+   self.var = 0;    //动态方法中调用动态变量和方法
+}
++(void)mtd2{
+  self.staticVar = 0;  //静态方法中调用静态变量和方法.
+  [self staticMtd];
+}
+
+//总结: self只代表调用者本身. (调用者是对象或类)
+
+
+由于person.name;为调用get方法, person.name=@""则为调用set方法. 
+如: 
+  -(void)setName:(NSString *)name {
+    self.name = name;  //self.name在外部就变成person.setName(). 代表调用者本身.
+  }
+  person.name = @"";
+  这样会死循环. 死循环, 死循环.
+
+  所以实在要重写setName()方法:
+     _name = name;  	//使用会自动生成的_name成员变量
+
+  在类内部使用属性时, 使用_成员变量是个好习惯.
+
+
+------------  构造方法  ------------------
+不同于java每个类都有构造方法, 没有明的还有暗的.
+OC的构造方法其实就是java的 person()和getInstance(). java构方其实也是返回对象的方法而已
+
+1. -(id)initWithName:(NSString *)name {
+	if (self=[super init]) {
+	   self.name = name;
+	}
+  	return self;
+   }
+
+2. 类方法, 静态方法 同getInstance()
+  +(id)personWithName:(NSString *)name{
+	Person *p = [Person new];
+	p.name = name;
+	return p;
+  }
+
+
+
+-----------description()方法 , 同java toString---------------------------------
+所以想调试的话,
+  1. 可以打印对象的description()方法
+
+  2. 重写类中的description()方法
+
+
+
+
+
+===============-----协议protocol(及delegate代理模式)---------=======================
+与java接口相似
+1. 定义一个协议
+	// 协议只能定义方法(+-呢).  不能有属性和变量
+AnimalDelegate.h [可以有.m吗]
+
+@protocol AnimalDelegate <NSObject> //定义的协议, 协议实现了NSObject协议
+ @required				//实现类必须要实现的方法
+ -(void)speak;
+ 
+ @optional				//可选实现的方法 [如未实现反而调用了呢]
+ -(void)run;
+@end
+
+Person.h
+@interface Person:NSObject<AnimalDelegate>    //扩展类能实现协议吗
+-(void)speak;
+@end
+
+事实上ObjC协议更多作用是约束一个类必须实现某些方法.
+从面向对象的角度看, 这个类和协议并不存在某种自然关系, 这种模式称为'代理模式'.
+
+
+----------------代理模式  ------------------------------------
+Cocoa框架中大量采用这种模式实现数据和UI的分离，而且基本上所有的协议都是以Delegate结尾
+
+按钮的代理机制:
+XMButton.h	//协议声明 + 类声明
+ @Class XMButton
+ @protocol XMButtonDelegate <NSObject>		//这里仅是个接口, 还需要新实现类.
+ @required
+ -(void)onClick:(XMButton *)button;	 	//因上下编译.协议使用到了XMButton必须引入类. 相互import会报错所以要@Class
+ @optional
+ -(void)onMouseOver:(XMButton *)button;
+ @end
+ 
+ @interface XMButton:NSObject
+ @property (nonatomic,retain) id<XMButtonDelegate> delegate;
+ -(void)click;
+ @end 
+ 
+
+XMButton.m 
+ @implementation XMButton
+ -(void)click{    // 原理特重要!
+	if(_delegate respondsToSelector:@selector(onClick:)) {//是否已实现了该方法[有方法体].
+		[_delegate onClick:self];   //XMButton类型参数传入self
+	} else {
+		//代理嘛. 有则用之, 无则不用,亦可自己实现.
+	}
+ }
+ @end 
+
+XMListener.h   //协议的实现类. 
+ @Class XMButton
+ @protocol XMButtonDelegate;  //这句同上吗?
+ @interface XMListener:NSObject<XMButtonDelegate>
+ -(void)onClick:(XMButton *)button;	//实现协议方法
+ @end
+
+XMListener.m
+ -(void)onClick:(XMButton *)button{
+	NSLog(@"这是点击事件"); //button参数备用
+ }
+
+main.m
+ XMButton *btn = [XMButton new];
+ XMListener *listener = [XMListener new];
+ btn.delegate = listener;		//协议实现类作为btn的代理. [xx与xx分离]
+ [btn click];
+ 
+
+@Class 类名
+	作用:同#import引入类信息. 以后本类可调用引入类
+	区别: #import引入类全部属性,本类可调用变量方法等; 
+			@Class仅引入类名,仅可使用类名作为类型.类中其他属性不知道,只在.m中用到时才能查看.[.m中需要import]
+		#import太多影响编译的性能, @Class不会
+		当循环依赖关系时[即A.h引用B,B.h中引用A],则必须一个使用@Class,否则报错.
+		因为只在.h中使用@Class, 在.m中使用类成员时还是要import 类
+
+
+------------ NSObject 方法-----------------------------------
+NSObject既是根类, 也是根协议. 
+	即新Interface必须继承它, 新protocal必须继承它.
+
+	alloc, allocWithZone 分配内存 
+	init 初始化
+	new 分配内存和初始化
+	copy, copyWithZone:  复制任意对象
+	
+	retain 增加对象计数器
+	release  减少对象的计数器
+	autorelease 自动减少, 但以推迟方式来实现.
+	retainCount   返回对象当前的计数器
+	dealloc 与alloc相反,释放对象实例变量和内存.
+	
+	//反省机制和对比机制				-----反射
+	superclass, class 返回一个Class对象.
+	isKindOfClass  是否该类或子类的实例
+	isMemberOfClass  是否该类的实例
+	respondsToSelector  是否实现了参数名@Selector方法
+	instancesRespondToSelector 同上, 是+方法
+	conformsToProtocol  是否符合一个协议
+	isEqual,hash  用于对象比较
+	description    同java的toString
+	performSelector 调用参数名方法
+	
+	SEL sel = @selector(mtd:); //指定action
+	if([obj respondsToSelector:sel]) {
+		[obj performSelector:sel withObject:self];
+	}
+	
+	
+	
+-------------------代码块Block 及 函数回调---------------
+1. block是个函数体,为匿名函数.
+2. 在block中, 可以引用局部变量.
+3. 利用block可将一个操作作为参数传递[同C中的函数指针].
+4. block可像struct,enum一样作为@property,
+	也可以typedef成新类型, 再声明变量\作方法参数返回类型..
+
+1. 声明结构和类型名字
+	NSString * (^xmBlock)(int,int);  //同C函数指针 char * (*p)(int,int);
+	void(^xx)(void);				 //无返回和无参数都用void
+	
+2. 带上方法体和内容
+	xmBlock = ^(int a,int b){
+		return "xxxx";
+	};
+	xx = ^(void){}; //无参数仍然用void
+3. 调用它
+	NSString *str = xmBlock(2,3);
+	xx();  				//无参数用空括号
+	
+由于block块语法会降低代码阅读性, 常用typedef定义block类型.
+	typedef NSString * (^xmBlock)(NSString *);
+	-(void)mtd:(xmBlock)block;	//作为方法参数
+	或
+	-(void)mtd:(NSString *(^)(int))block;   //^代表block名位置
+	
+block可调用外部方法中的变量, 但必须是const的. [将常量复制到闭包中使用的]
+
+想要block中操作变量怎么办呢?  将外部方法中变量用__block修饰
+	//引用变量的地址来访问的.
+	__block int x;
+	xmBlock(x);	//例如xmBlock中x++
+	
+	
+那,如何使用block进行回调呢?
+	
+
+========------OC的分类category (类扩展extend) ------------------------------
+//同javascript中的extend扩展. 
+
+在不创建继承类的情况下实现对已有类的扩展, 不必创建新类和子类. 
+	新添加的方法同样会被所有子类继承. 
+可动态的为已有类添加新的行为 (特别是系统的框架的类)
+
+e.g 为NSString 扩展一个trim方法:
+NSString+ExtendName.h 				//新建文件时选择catagory,格式自动设定
+ @interface NSString (ExtendName)	//()内为扩展名,基类可有多个扩展.换()名而已
+ -(NSString *)stringByTrim;
+ @end
+
+NSString+ExtendName.m
+ @implementation NSString (Extend)
+ -(NSString *)stringByTrim{
+   NSCharacterSet *ch = [NSCharactreSet whitespaceCharacterSet];
+   return [self stringByTrimmingCharactersInSet:ch];
+ }
+
+
+不可以添加新的实例变量，类别生命中没有实例变量部分[可以使用字典对象解决]。[那属性呢]
+名称冲突时, 分类中的方法更高的优先级,将替换原类中的方法. 这时无法调用原方法.
+Category通常作为一种组织 框架代码的工具来使用。
+用途:
+ 在不创建继承类的情况下实现对已有类的扩展。
+ 简化类的开发工作(多人开发,同一个类根据用途放不同文件中.)
+ 将常用的相关的方法分组。
+ 在没有源代码的情况下可以用来修复BUG。
+
+继承与catagory选择:
+	需要添加变量, 使用子类
+	只是添加或重写方法, 使用catagory
+
+
+
+==============----OC 内存管理-------------=========================
+基本类型由系统管理, 放在栈上. 对象内存由人维护, 放在堆中.
+
+ARC (自动引用计数)是后来加的. 自动添加释放代码,手动添加会报错.
+要想理解内存关系及优化程序内存,必须关闭ARC:
+	Build Settings-搜garbage--找到Objective-C Automagic Reference Couting, 设为No
+	
+
+------------引用计数器--------------------
+[内存], 就是一块内存. 它没人用就该清除, 在用着就要留着.
+    对象是内存的体现, 一个对象可有N个人在用,也可能没人使用了就该清除. 如何管理内存呢?
+	
+	使用引用计数,创建了count为1, A使用了count+1,B也使用了count+1,不用了就-1. 直到为0时, 系统自动清除内存/销毁对象.
+	[释放对象]的意思,就是它用不到此对象,count-1了.
+	
+	释放原则: 谁引用, 谁释放!.  A不用了,A就要释放;B不用了,B应该释放.  原则
+	
+	什么时候增加引用呢?
+	alloc分配内存,new分配内存和初始化对象, copy旧对象内容成新对象并分配内存, retain内存的引用指针.
+	
+	什么时候释放引用呢? 
+	[A release];
+          //对象内部都有一个对应的整数(retainCount,NSObject有此方法),即引用计数器.
+	
+  简单示例:
+	Person *p = [[Person alloc] init]; //调用alloc,count+1
+	NSLog(@"%d",p.retainCount);
+	[p release];					//count-1.  此时为0, 对象被销毁,但p中还存放地址.
+	p = nil;						//如果不设空,则变成野指针.指向的内存已经不属于它, 很危险的
+	p release];					//野指针调用危险. 但是给nil发送消息不会报错.[真的吗,其他方法呢]
+
+  变量的Setter方法示例:(原理)
+  {  Dog _dog;}
+  -(void) setDog(Dog dog) {   //set的原理就是新值换旧值.  旧值不用了就要释放release
+	if (_dog!=dog) {			//why判断不是同一对象呢?
+		[_dog release];			//释放旧对象
+		_dog = [dog retain];	//将新对象的地址给_dog. dog又多了一个引用[retain方法会count++]
+	}
+  }
+	
+	
+-------------内存管理的原理   ----------------
+  对象所有权和释放4原则:
+	你创建的对象你都获得所有权.(包括alloc,new,copy等关键字获得的对象)
+	通过retain获得所有权.
+	当不需要对象了, 必须释放所有权.
+	不能释放你没有所有权的对象.
+	
+
+	
+-------  copy, retain的作用  区别-------------------------------
+copy   后为新对象, 新的地址,count=1. 内容和旧的一样. 
+retain 后的对象与旧对象地址,count+1.
+
+copy  复制内容.  在复制之前都会释放旧对象.
+retain  复制指针.
+
+使用copy 经常对NSString;  使用retain 对NSObject和其他类
+   
+另还有assign是直接赋值,不改count. 它操作基本类型和C的基本类型和id. [id必须使用assign]
+	即属性不加*的,就用assign吧,id也不加*.
+   
+
+   
+-----------   属性参数 (与内存释放相关)--------------------------------------
+作为修改property的特性, 它有三类.
+如果不设置,则为三种中的默认值
+@property int age;   
+	同 property(atomic,readwrite,assign) int age;
+@property (nonatomic,copy) NSString *name;  //字符串或可复制内容的obj,可用copy
+@property (nonatomic,retain) Dog *dog;  //对象用retain,set时更换新指针.
+
+
+1. 原子性 [加不加锁]
+	nonatomic 不加锁,多线程不安全,但速度快
+	atomic 		加锁, 多纯种下安全.  (默认)
+2. 读写属性
+	readwrite	可读写,即生成get,set. (默认)
+	readonly	只生成get
+3. set的内部处理方式
+	assign	直接赋值 (如基本类型) (默认)
+	retain  复制指针  (先release,再retian)
+	copy    复制内容成新对象 (先release,再copy, 对象类需要有copyWithZone())
+	
+	
+
+-------ARC后的属性参数 - strong,weak------------
+strong同retain, count会+1.    一个对象被N个strong引用, 释放至还剩最后一个时仍不会被释放.
+weak同assign直接赋引用, count不会+1.  
+	一个对象同时被strong,weak引用. 只要有强引用,就不被释放. 当无strong,而有N个weak时,还是会被释放.
+
+当strong被释放完, count=0对象销毁内存回收. 而对象上N个weak指针将被统一设为nil.有效防止野指针.
+	[strong已经用完了,自然没有野指针调用.]
+	
+e.g 1:
+	@property (nonatomic,strong) NSString *str1;
+	@property (nonatomic,strong) NSString *str2;
+	str1 = @"A";
+	str2 = str1;   str1 = nil;
+	NSLog(@"%@", str2);
+	//因为两个strong占用着"A",  此时释放str1,还有str2.  打印出A
+	
+e.g 2:
+	@property (nonatomic,strong) NSString *str1;
+	@property (nonatomic,weak) NSString *str2;
+	//同上面的步骤
+	//只有str1是strong, 当释放了唯一的强则count=0内存被回收,weak的str2=nil.
+	//打印内容为null.
+	
+ARC下属性的set特性默认是strong. 
+	默认所有实例变量和局部变量都是strong
+	方法中的局部变量也全部是strong. 
+	
+	当需要weak的变量时用: __weak, __strong 修饰符
+	__weak int a = b;
+
+	
+----------------Stong,weak的使用原则, 以及strong,weak管理内存-------------------------------------
+
+3.weak指针主要用于“父-子”关系，
+	父亲拥有一个儿子的strong指针，因此父亲是儿子的所有者；但为了阻止所有权循环,儿子需要使用weak指针指向父亲。
+	典型例子是delegate模式,ViewController通过strong指针拥有一个UITableView, 
+	UITableView的dataSource/delegate都是weak指针,指向你的ViewController
+	self.view = tableView;		//(strong) view
+	tableView.delegate = self;	//(weak) delegate; 互相引用,一强一弱. .view是强耦合,.delegate是解耦合.
+	
+ e.g 两者互相引用,一强一弱:
+	person.dog = dog1;	
+	dog1.zhuRen = person;
+	
+ e.g 多级连续strong的话, 越级定义为weak:
+	dog.m
+	    (strong) *bell;
+	person.m 
+	    (strong) Dog *dog;   // 人-狗-铃铛 ;人--铃铛; 
+	    (weak)  *铃铛
+		 NSString *bell2 = @"金铃";
+	  1. _铃铛 = bell2; 
+		 _铃铛 = nil;		//bell2 此时为nil;
+	  2. _铃铛 = bell2; 
+		 _dog.bell = bell2;
+		 _铃铛 = nil;		//有dog的强引用, bell2 此时仍为"金铃"
+	
+ 同理, 为什么定义IBOutlet全都是weak呢?  
+ 答: 因为IBOutlet的组件都是被添加到View或subView上, 而View对subView都是Strong;
+	 所以在ViewController上定义,VC不需要直接管, 只看看就好了(weak);
+	
+	
+下面代码是有问题的:
+	__weak NSString *str = [[NSString alloc] initWithFormat:@"1234"];  
+	NSLog(@"%@", str); 	// null
+	str是个weak指针，所以NSString对象没有拥有者,在创建之后就会被立即释放。Xcode还会给出警告("Warning: Assigning retained object to weak variable; object will be released after assignment")
+
+ 
+
+2.默认就是strong类型的,以下两行是等价的:
+	NSString *name = self.nameField.text;  
+	__strong NSString *name = self.nameField.text;  
+ 
+
+3.属性可以是strong或weak,写法如下
+@property (nonatomic, strong) NSString *name;  
+@property (nonatomic, weak) id delegate;  
+
+4.以下代码在ARC之前是可能会行不通的,因为在手动内存管理中,从NSArray中移除一个对象时,这个对象会发送一条release消息，可能会被立即释放。随后NSLog()打印该对象就会导致应用崩溃
+	id obj = [array objectAtIndex:0];  
+	[array removeObjectAtIndex:0];  
+	NSLog(@"%@", obj);  
+	在ARC中这段代码是完全合法的,因为obj变量是一个strong指针,它成为了对象的拥有者,从NSArray中移除该对象也不会导致对象被释放
+	//ARC前,释放完变野指针了.
+	
+	
+六、ARC小结
+
+1.有了ARC,我们的代码可以清晰很多,你不再需要考虑什么时候retain或release对象。唯一需要考虑的是对象之间的关联,也就是哪个对象拥有哪个对象?
+2.ARC也有一些限制：
+
+1> 首先ARC只能工作于Objective-C对象,如果应用使用了Core Foundation或malloc()/free(),此时还是需要你来手动管理内存
+2> 此外ARC还有其它一些更为严格的语言规则,以确保ARC能够正常地工作
+3.虽然ARC管理了retain和release,但并不表示你完全不需要关心内存管理的问题。因为strong指针会保持对象的生命,某些情况下你仍然需要手动设置这些指针为nil,否则可能导致应用内存不足。无论何时你创建一个新对象时,都需要考虑谁拥有该对象,以及这个对象需要存活多久
+4.ARC还能很好地结合C++使用,这对游戏开发是非常有帮助的。对于iOS 4,ARC有一点点限制(不支持weak指针),但也没太大关系
+ 
+
+七、ARC使用注意总结
+1.不能直接调用dealloc方法，不能调用retain，release，autorelease，retainCount方法，包括@selector(retain)的方式也不行 
+2.可以用dealloc方法来管理一些资源，但不能用来释放实例变量，也不能在dealloc方法里面去掉［super dealloc］方法，在ARC下父类的dealloc同样由编译器来自动完成 
+3.Core Foundation类型的对象仍然可以用CFRetain，CFRelease这些方法 
+4.不能再使用NSAllocateObject和NSDeallocateObject对象 
+5.不能在C结构体中使用对象指针，如果有类似功能可以创建一个Objective－C类来管理这些对象 
+6.在id和void*之间没有简便的转换方法，同样在Objective－C和Core Foundation类型之间的转换都需要使用编译器制定的转换函数 
+7.不能再使用NSAutoreleasePool对象，ARC提供了@autoreleasepool块来代替它，这样更有效率 
+8.不能使用内存存储区（不能再使用NSZone） 
+9.不能以new为开头给一个属性命名 
+10.声明IBOutlet时一般应当使用weak，除了对StoryBoard这样nib中间的顶层对象要用strong 
+11.weak相当于老版本的assign，strong相当于retain
+
+
+
+--------------autorelease 自动释放 ----------------------------------------------------------------
+ 在块中调用过autorelease方法的对象都会自动调用一次release方法。这样一来就起到了自动释放的作用，同时对象的销毁过程也得到了延迟（统一调用release方法）
+ 
+   Person *p=[[[Person alloc]initWithName:name] autorelease];
+   Person *person1=[[Person alloc]init];
+   [person1 autorelease];/
+
+ 由于自动释放池最后统一销毁对象，因此如果一个操作比较占用内存（对象比较多或者对象占用资源比较多），最好不要放到自动释放池或者考虑放到多个自动释放池；
+ 自动释放池实质是当自动释放池销毁后调用对象的release方法，不一定就能销毁对象
+ ObjC中类库中的静态方法一般都不需要手动释放，内部已经调用了autorelease方法
+ 
+ 
+ 
+ 
+--------------KVC键值编码, KVO 键值监听-------------------------------------------
+KVC 动态加载,利用字符串访问对象或成员, 的特性.
+
+简单路径:
+	valueForKey:"",  setValue:"" forKey:"";	--如 valueForKey:"name"
+复合路径:
+	valueForKeyPath:"", setValue:"" forKeyPath"";  --如 valueForKeyPath:"person.dog.name";
+	
+即使是@private的变量也可以访问哦!
+
+字符串查询成员的规则:
+	优先get/set, 无则_xx[无视private], 无则xx[不带_], 仍然没有说明没定义,则调用
+		valueForUndefinedKey:, setValue:forUndefinedKey:,
+		
+	即你没定义该变量仍然可以get/set.  这就是动态属性吗?
+	
+	
+----KVO:  ---------------
+有些技术有双向绑定机制, 数据模型修改了会立即反映到UI上. 类似的MVVM设计模式的框架.
+ObjC中原生支持此机制, KVO其实是观察者模式. 方便实现视图和数据模型的分离.
+KVO常用方法:
+	注册监听器: addObserver:  forKeyPath:  options:  context:
+	删除监听器: removeObserver: forKeyPath
+	回调监听:   observerValueForKeyPath:  change:  context:
+	
+模拟: 想让money改变的时候person获得通知. 
+	money就作为被监听对象, person为它注册监听(addObserver),
+	作为监听者person需要重写observerValueForPath方法.
+	当money改变后会回调person.observerValueForKeyPath方法 .
+	
+Person.m
+	-(void)setAccount:(Account *)account{   //账户对象有money属性
+		_account = account;
+		[self.account addObserver:self forKeyPath:@"money" 		//钱属性值改变时触发监听, 看option
+			options:NSKeyValueObservingOptionNew  context:nil];
+	}
+	-(void)observerValueForKeyPath:(NSString *)keyPath...context:(void*)ctx{
+		if ([keyPath isEqualToString:@"money"]) {	//
+			//输出log
+		}
+	}
+	-(void) dealloc {	//对象被销毁时remove监听
+		[self.account removeObserver:self forKeyPath:@"money"];
+		//[super dealloc]; //启用了ARC, 就不需要这句. why?
+	}
+	
+main.m
+	Account *acc = [Account new];
+	acc.money = 10000;
+	person.account = acc;
+	acc.money = 200000;  //此时监听被触发,输出log
+	
+-----------KVO的一些陷阱-----------------------------------------
+假如在UITableViewController中对_tableView.contentOffset进行监测,很容易使用KVO
+加了add,remove,observerValue太粗糙, 因为在VC中多个KVO时只走此一个observerValue方法,要判断:
+	if (object == _tableView && [keyPath isEqualToString:@"contentOffset") {
+		//
+	}
+还不行, observerValue是重写方法,会覆盖父类中的实现,所以要super:
+	if (object == .... && ) {
+	} else {
+		[super observerValueForKeyPath:keyPath ofObject:object...];
+	}
+
+在dealloc注销监听时, 两次remove会crash崩溃.(即父类子类都remove了),要标识出父类和子类,在remove时判断,
+	可以在父类和本类定义context字符串(如何定?),再在remove方法前判断context字符串.
+
+
+	
+	
+======== Foundation框架: 基本结构,集合映射,String,Date等 ====================================================
+Cocoa框架是一系列框架的集合, 最重要的两个是Foundation & UIKit,一个在CoreService层,一个在UIKit层. (除这两个还有其他框架哦)
+
+所有类的根类是NSObject, 它就在Foundation框架中,看看此框架中NSObject子类大概:(仅作了解)
+	1.Value Objects	  	值对象
+			Data,MultableData;Date,Calendar,NSValue,NSNull...
+	2.XML		
+		XMLNode,XMLParser,XMLDocument,XMLDTD,XMLElement....
+	3.Strings			字符串相关
+		AttributedString,CharacterSet,String,Formatter,Scanner,SortDescriptor....
+	4.Collections		集合框架
+		Array,Dictionary,Enumerator,MapTable,Set,HashTable,IndexPath,IndexSet....
+	5.Predicates  		表达式和条件判断
+		Expression,Predicate...
+	6.Operating-System Service		操作系统服务
+		Error,Host,NetService,NetServiceBrowser,RunLoop,ProcessInfo,Timer,.....
+	7.File System			文件系统
+		Bundle,FileHandle,FileManager,MetadataItem,MetadataQuery.....
+	8.URL				 网络
+		URL,HTTPCookie,URLCache,URLConnection,URLDownload,URLRequest....
+	9.Interprocess Communication	进程间通信
+		Pipe,Port,PortMessage,SocketPort....
+	10.Locking/Threading	线程,锁
+		Thread,Task,Lock,Operation,.....
+	11.Notifications		通知
+		Notification,NotificationCenter,NotificationQueue....
+	12.Archiving and Serialization		存档和序列化
+		Coder,Archiver,PortCode,PropertyListSerialization...
+	13.Objective-C Language Service		OC语言服务
+		Exception,ClassDescription,Invocation,MethodSignature,....
+	14.Scripting		苹果脚本
+		AppleScript,ScriptCommand,AppleEventManager...
+--  NSProxy子类
+	15.Distributed Objects 	分布式对象
+		NSConnection,DistantObject,ProtocolChecker....
+		
+UIKit框架主要用于界面,大体结构看图片, 此处省略.
+
+---------1. 常用结构体 struct ---------------------------------------------
+NSRange、NSPoint、NSSize、NSRect
+	NSRange rs = {index,length};
+	NSRect rt = {x,y,w,h};
+对应调试字符串:
+	NSStringFromRange/Point/Size/Rect(struct);
+
+	
+---------2. 日期 NSDate ----------------------------------------------------------
+time Interval: 时间间隔 (iOS以秒作单位)
+
+1. +当前日期  NSDate *d = [NSDate date];
+2. +当前时间偏移	 [NSDate dateWithTimeIntervalSince~~, 一系列Since方法
+   -对应实例方法   			initWithTimeIntervalSince~~
+   -对应属性和get方法		timeIntervalSince~~~
+   宏:	NSTimeIntervalSince1970
+   
+3. +随机将来/以前的日期:  ditantFuture/Past
+4. -两个日期比较
+		isEqualTo,compare, earlierDate,laterDate.
+5. -加一段时间返回新日期	dateByAddTimingInterval
+6. -转成字符串的日期:	descriptionWithLocale
+7. 系统时钟改变时提醒字段: NSSystemClockDidChangeNotification    [相关settimeofday()]
+
+日期格式化:   NSDateFormatter
+	fmt.dateFormat = @"yyyy-MM-dd HH:mm:ss";
+	NSString *show = [fmt stringFromDate:date];
+	NSDate *dt = [fmt dateFormString:@"2015-12-30 08:08:08"];
+
+	待续......
+	
+---------2.5  日历  NSCalendar -------------------------------
+	
+1. 系统日历
+	+currentCalendar
+	+autoupdatingCurrentCalendar  不懂啊
+	
+2. 创建新日历
+	+calendarWithIdentifier:str   //NSCalendarIdentifierChinese,ISO8601,RepublicOfChina
+	-initWithCalendarIdentifier:   同上
+
+3. 获取日历的信息
+	calendarIdentifier  属性  获得日历对应地方, 看上面2.
+	firstWeekday	属性   一周开始是周日还是周一
+	locale 			本地
+	timeZone		时区
+	minimumDaysInFirstWeek	
+	AMSymbol	上午标志
+	PMSymbol	下午标志
+	
+	
+4. 计算日期
+	
+5. 比较日期
+
+6. 提取日期组成
+	
+7. 工作日标志 WeekDay
+	weekdaySymbols
+	shortWeekdaySymbols			短工作周, 如失业者
+	.....
+
+8. 月标志, 季度标志
+	同工作周标志,上面
+	
+9. 日期类型 CalendarUnit
+	enum NSCalendarUnit  多种日期标准...
+
+10. 日期常量
+	NSCalendarDayChangedNotification		提醒
+	
+	
+
+----------3. 字符串 NSString -----------------------------------------
+子类 NSMutableString
+组成的单个字符: unichar 重定义前是 unsigned short
+
+
+1. +初始化字符串
+	string, stringWithFormat,localizedStringWithFormat
+	stringWithString  //Copy一个新字符串,参数不能为nil. [想想内存管理copy]
+	stringWithCString:(const char*) encoding:(NSStringEncoding) 从C语言字符串转化	
+	stringWithUTF8String:(const char*) 同上,但编码直接是UTF8
+2. -初始化字符串
+	init[指定的],
+	initWithBytes[NoCopy]:(const void*)bytes  length: encoding:		//指针常量,差点认不出来.
+	initWithCharacters[NoCopy]:(const unichar*) length:
+	initWithString/CString/UTF8String  同上边静态方法
+	initWithFormat:   一系列Format方法
+	initWithData:(NSData *) encoding
+	
+3. 从文件中创建字符串
+	+stringWithContentOfFile: encoding/usedEncoding: error
+	-initWithContentOfFile: encoding/usedEncoding: error
+	
+4. 从URL地址读取字符串
+	+stringWithContentOfURL: encoding/usedEncoding: error
+	-initWithContentOfURL: encoding/usedEncoding: error
+	
+5. 把字符串写进文件或URL地址
+	-writeToFile: atomically:encoding:error:
+	-writeToURL: atomically:encoding:error:
+
+6. 获得其中的字符or字节
+	-characterAtIndex:		//取单个字符 unichar
+	-getCharacters:(unichar *)buffer range:  //void方法. 取自身range字符串进buffer
+7. 获得C语言字符串
+	UTF8String  	属性
+	-cStringUsingEncoding:
+	
+8. 拼接append
+	-stringByAppendingFormat:
+	-stringByAppendingString:
+	
+9. 分割字符串
+	-componentsSeparatedByString:   同split
+	-componentsSeparatedByCharactersInSet:
+	-stringByTrimmingCharactersInSet:	同trim
+	-substringFromIndex/ToIndex/WithRange:  同subString多态
+	
+10. 查找和包含子字符串
+	-rangeOfCharacterFromSet: 一系列多态方法. 返回第一次出现的range位置. 不包含或参数是@""则返回{NSNotFound,0}
+	-rangeOfString:  一系列方法. 上面参数是CharacterSet, 这个参数是String
+	-enumerateLinesUsingBlock:(void(^)(NSString *lines,BOOL *stop)) block  枚举多行字符串,直到参数stop
+	
+11. 替换replace
+	-stringByReplacingOccurrencesOfString: withString:  替换所有出现的 同replaceAll, 没有replaceFirst
+	-stringByReplacingCharactersInRange: withString:  在给定的range内查找并替换.	
+	
+12. 确定'行'段'范围
+	-getLineStart:end:contentsEnd:forRange: 看不懂 ??
+	....  不知道是干什么的
+	
+13. 转换成JSON对象
+	-propertyList: //返回id,根据最高级判断是Array,Dictionary,Data,String. 内容同JSON一样.
+	-propertyListFromStringsFileFormat: 返回Dictionary
+	
+14. 比较与识别字符串
+	-isEqualToString:
+	-hasPrefix:   是否有这个前缀, 同startWith
+	-hasSuffix:	  是否有这个后缀, 同endWith
+	-compare: options: range: locale:  提供多种方式来比较两字符串, 一系列多态方法
+		options:枚举,可并集多个组合[应该是的]
+			NSCaseInsensitiveSearch,NSLiteralSearch 是否区分大小写
+			NSBackwardsSearch从后向前搜, NSAnchoredSearch在range内搜索
+			NSNumbericSearch以出现的数据比较, 排序文件名不错,.   如"note1.txt"<"note2.txt"
+				或者数字不必先从string转为int, 直接比较.
+			.......
+	所有比较的返回值都相同,为NSComparisonResult枚举:
+		NSOrderedSame=0,
+		NSOrderedAscending = -1,
+		NSOrderedDescending = 1.
+		
+	例如: if([num1 compare:num2 options:NSNumbericSearch] == NSOrderedDescending)
+
+15. 大小写
+	capitalizedString   属性, 返回开头大写化字符串
+	uppercaseString		属性, 大写化字符串
+	lowercaseString		属性, 小写化字符串
+	
+16. 转换成数字  全是属性! 
+	intValue,integerValue.		"30".intValue 直接返回数字
+	doubleValue,floatValue
+	longLongValue,
+	boolValue
+	
+17. 字符编码 Encode
+	+availableStringEncodings  返回所有可用的编码
+	+defaultCStringEncoding		当前默认的C语言编码
+	-canBeConvertedToEncoding: 能否转换成这个编码呢
+	-dataUsingEncoding: allowLossyConversion:BOOL	将字符串按encode转换成NSData; BOOL参数是否允许转换时有损失,
+		官网解答:如果是YES,NSUnicodeStringEncoding to NSASCIIStringEncoding, the character ‘á’ becomes ‘A’, losing the accent.
+	-dataUsingEncoding:  同上,是否允许损失为NO.
+	fastestEncoding,smallestEncoding 属性, 返回可能最快和最终空间最小的编码.
+	
+18. 文件路径处理 Paths
+	pathComponents	属性. 路径数组. 如 [@"/user/xiaomin" pathComponents], 数组内容为{/,user,xiaomin}
+	fileSystemRepresentation 属性, 返回C语言字符串, 方便C语言的框架方法
+	absolutePath和isAbsolutePath   BOOL返回是否绝对路径
+	lastPathComponent	属性.  返回最后一节. 而且已容错,不带/.
+	pathExtension		属性.  返回全路径后文件名的扩展名.  已容错, 路径返回"".
+	-stringByAppendingPathComponent:    组合成新路径, 有容错@"/user/xiaomin" mtd:@"a.txt"-->/user/xiaomin/a.txt
+	-stringByAppendingPathExtension: 	新路径加上后缀名. @"/user/xiaomin" mtd:@"txt" -->/user/xiaomin.txt
+	-stringsByAppendingPaths:
+	...... 很多
+	
+19. 网络路径处理 URL.  不懂
+	-stringByAddingPercentEncodingWithAllowedCharacters:
+	-stringByRemovingPercentEncoding:
+	
+20. 另外还有字符串写入文件
+	[str writeToFile:path atomically:YES encoding:NSUTF8StringEncoding]
+	//automically代表一次性写入，如果写到中间出错了最后就全部不写入
+	
+	
+---------4. 可变字符串 NSMutableString----------------------------------------
+同StringBuilder
+
+	+stringWithCapacity:
+	-initWithCapacity:		//初始化一个预期容量的可变字符串. 容量可扩大的
+	
+	-appendString:		追加
+	-appendFormat:
+	-insertString: atIndex:		中间插入
+	-deleteCharactersInRange:	中间删除
+	-replaceChractersInRange: withStrng:
+	-replaceOccurrrencesOfStrings: withString:
+	-setString:
+	
+	
+	
+---------- 5.数组 NSArray. 可变数组 NSMutableArray 同List ------------------------------------
+http://www.tools138.com/create/article/20150307/020015325.html   这个才是好好学习的
+
+C语言的数组用[]: NSString *str[]   同java
+ObjC的数组是对象NSArray,同List
+
+1. 初始化数组
+	+arrayWithArray			//新数组,包含着另一数组的成员.[成员是同一个哦]
+	+arrayWithObjects:		//多个对象以逗号分隔,结尾是nil.如arrayWithObjects:str,date,arr,nil].
+	+arrayWithObjects:C数组 count: 		//同List从arr[]中取数据, count是C数组的前几位.
+	-init,+array
+	-initWithArray:			//重新分配内存
+	-initWithArray:	copyItem:BOOL    //是否copy所有元素.
+	-initWithObjects:  //同上,多个对象分隔,结尾是Nil.
+	-initWithObjects:C数组 count:
+	
+2. 文件读取数组
+	+arrayWithContentsOfFile:
+	-initWithContentOfFile:
+	+arrayWithContentOfURL:		//这4个读的内容里,必须是数据\集合对象:String,Data,Date,Number,Array,Dictionary
+	-initWithContentOfURL:		//内容要同JSON一样
+	
+3. 查询数组元素
+	count	元素数量
+	firstObject,lastObject	属性,第一和最后对象
+	-objectAtIndex:		同arr[i],list.get(i)
+	-objectAtIndexs:indexSet	一次取多个
+	-objectEnumerator	返回遍历对象 NSEnumerator	
+		while(obj = [enumerator nextObject]){}
+	-reverseObjectEnumerator  同上的遍历对象, 但顺序是相反的
+	
+4. 元素位置 index
+	-indexOfObject:[inRange:]
+	-indexOfObjectIdenticalTo:[inRange:]  如果有重复元素(地址重复?),取最先的index
+	-indexOfObjectPassingTest:(^(obj,index,stop)) block的规则查询通过后的第一个objIndex
+	-indexOfObjectWithOptions: passingTest: 同上, 加了遍历option: 线程并发,反向.
+	-indexOfObjectAtIndexes:ids  options:passingTest:  同上,在idSet里找
+	
+	-indexesOfObjectsPassingTest:  同上上, 返回符合条件的多个元素indexSet.
+	-indexesOfObjectWithOptions: passingTest: 
+	-indexesOfObjectsAtIndexes:ids  options:passingTest:
+	
+	-indexOfObject: inSortedRange: options: usingComparator: //options使用二进制查询 BinarySearch...
+	
+5. 给元素发送消息 (不懂)
+	//同for循环, 但效率高于循环取元素后再分别调用方法.
+	
+	-makeObjectsPerformSelector:SEL  给数组中每个元素发消息,[即调用元素的方法]
+	-makeObjectsPerformSelector:SEL withObject: 同上, 第二参数是SEL的参数[不能是基本类型,如是要转成对象]
+	-enumerateObjectsUsingBlock:(^(obj,ids,stop))
+			遍历数组,并在block中对每个obj进行操作.  省得for循环数组操作对象了
+	-enumerateObjectsWithOptions: usingBlock:   //同上遍历操作, option: 并发,反向遍历
+	-enumerateObjectsAtIndexes: options: usingBlock:  //同上, 在indexSet中遍历
+			
+	
+6. 比较数组
+	-isEqualToArray
+	-firstObjectCommonWithArray: 返回和数组B交集中的第一个
+	
+7. 得到新数组
+	-arrayByAddingObject:obj      copy数组并加上obj后的新数组
+	-arrayByAddingObjectsFromArray: copy数组并追加另一个数组
+	-filteredArrayUsingPredicate:   根据条件过滤数组,返回新数组
+			NSPredicate 同sql的where,有表达式,like....见后面详解
+	
+	-subarrayWithRange:		子数组
+	
+8. 排序  sort
+	sortedArrayHint		属性read, 只对sortedArrayUsingFunction:context:hint:方法有效,加快排序速度
+	-sortArrayUsingFunction	/ Descriptors / Selector /Comparator / Options & Comparator 
+		//提供多种方法排序
+		
+9. 数组转换成String
+	description
+	-componentsJoinedByString:str  把所有元素根据str连接成一条字符串. 如用,;- ""来连接.
+	
+10. Write写到文件中
+	-writeToFile: atomically:
+	-writeToURL: atomically:
+
+11. 数组中收集路径
+	-pathsMatchingExtensions:arr文件类型
+	
+12. 数组的KVO
+	-addObserver:forKeyPath:options:context 	//数组自己添加监听
+	-addObserver:  toObjectsAtIndexes:forKeyPath:options:context: 	//给元素添加监听 
+	-removeObserver:...
+	-removeObserver:  fromObjectsAtIndes: forKeyPath: context
+	
+13. 数组的KVC
+	-无不同
+	
+------------ 6. 可变数组 NSMutableArray ------------------------------
+同java的 List<T>
+1. 重写的NSArray的方法
+	insertObject:atIndex:
+	removeObjectAtIndex:
+	addObject:
+	removeLastObject
+	replaceObjectAtIndex:withObject:
+	
+2. 创建可变数组
+	+arrayWithCapacity:
+	-initWithCapacity:
+	+arrayWithContentsOfFile/URL
+	-initWithContentOfFile/URL
+	
+3. 添加/追加元素 [NSArray没有的,有的addByxxx是返回新数组copy的]
+	-addObject:
+	-addObjectsFromArray:
+	-insertObject: atIndex
+	-insertObjects: atIndexs
+	
+4. 删除元素
+	-removeAllObjects
+	-removeLastObject		删除末尾元素
+	-removeObject:obj
+	-removeObjectAtIndex/ InRange /InArray
+	-removeObjectIdenticalTo:obj            删除和obj内容一样的元素. [去重么]
+	
+5. 替换元素
+	-replaceObjectAtIndex: withObject
+	-replaceObjectsAtIndexs / InRange ...
+	-setObject: atIndexedSubscript:   替换,有些情况是添加
+	-setArray:		替换整个了
+	
+6. 过滤数组内容
+	-filterUsingPredicate:
+	
+7. 排序数组元素 sort
+	-exchangeObjectAtIndex:withObjectAtIndex: 两个调换位置
+	-sortUsingDescriptors:/ Comparator / Functions / Selector
+	
+
+	
+------------ 7.字典 NSDictionary  -------------------------------------
+同java的 Map<T>.  但不能put. 只能get
+
+1. 创建字典
+	+dictionary, -init
+	+dictionaryWithContentsOfFile /URL: 	文件内容必须是6种对象:String,Data,Date,Number,Array,Dictionary
+	+dictionaryWithDictionary:  			创建新的字典, 包含另一字典的key,value.(元素地址)
+	+dictionaryWithObject:obj forKey:id<NSCoping>    	有一条key,value的字典
+	+dictionaryWithObjects:arr forKeys: arr 			有多条k,v的字典
+	+dictionaryWithObjects:C[] forKeys:C[] count    	把C语言的数组[]内容作k,v. count数量.
+		//string,array,dictionary带count的好像都是C的数组.
+	+dictionaryWithObjectsAndKeys:	 					同NSArray, 参数多个对象, 结尾是nil
+				[..andKeys:obj1,@"key1",obj2,@"key2", nil];
+			
+			
+	-initWithContentsOfFile /URL			同上,JSON形式的文件
+	-initWithDictionary:					同上,包含另一字典的k,v (地址)
+	-initWithDictionary:copyItems			init才有.   同上功能, 但元素会复制过来.
+	-initWithObjects:forKeys:				没有静态方法单个k,v的. 只有多个的
+	-initWithObjects:forKeys:count			使用C语言的数组[]	是指定的init方法
+	-initWithObjectsAndKeys:				同上
+	
+2. 获取key或value
+	count 字典内容条数
+	allKeys	
+	allValues
+	-objectForKey:
+	-objectsForKeys: notFoundMarker:obj     //后面那个干嘛的?  不包含吗
+	-allKeysForObject:obj					//返回同一个obj对应的所有key,  去重么
+	-valueForKey:   是KVC一部分
+
+3. 比较字典
+	-isEqualToDictionary:			比较内容
+	
+4. 遍历字典
+	-keyEnumerator   返回key的遍历对象
+	-objectEnumerator	value的遍历对象
+	-enumerateKeysAndObjectsUsingBlock:(^(key,obj,stop)		遍历的同时进行操作, 省却for循环
+	-enumerateKeysAndObjectsWithOptions: usingBlock: 	 选项: 反向,并发
+	
+5. 排序字典 根据key排序
+	-keysSortedByValueUsingSelector:SEL / Comparator /WithOption: usingComparator:
+	
+6. 过滤字典
+	-keysOfEntriesPassingTest:(^(key,obj,stop)predicate 根据条件过滤内容
+	-keysOfEntriesWithOptions: passingTest:  同上, 加了并发/反向的选项
+	
+7. 键集共享
+	+sharedKeySetForKeys:arr 用dictionaryWithSharedKeySet:创建字典。共享键集会复用对象，以节省内存
+	
+8. write写成文件
+	-writeToFile /URL: atomically
+	
+9. 获得文件属性,  文件哦
+	-fileCreationDate		创建日期
+	-fileExtensionHidden	扩展名是否隐藏
+	- fileGroupOwnerAccountID		返回NSFileGroupOwnerAccountID的key, 是个数字
+	- fileGroupOwnerAccountName		返回NSFileGroupOwnerAccountName的value, 是字符串
+	- fileModificationDate	修改日期
+	- fileOwnerAccountID			同上上, 群组名和拥有者名
+	- fileOwnerAccountName
+	- fileSize				unsigned long long 
+	- fileSystemFileNumber	
+	- fileSystemNumber
+	- fileType		.... 好多UNIX相关属性, 了解
+	
+
+----------- 8. 可变字典 MultableDictionary -------------
+不可变时不能put(k,v), 可变的可以追加了
+
+1. 创建可变数组	
+	+dictionaryWithCapacity:
+	-initWithCapacity
+	+dictionaryWithSharedKeySet: 与父类中的sharedKeySetForKeys配合 
+	
+2. 添加元素
+	-setObject: forKey:	  key不存在是添加, key存在是替换
+	-setValue: forKey:  KVC键值编码
+	-addEntriesFromDictionary:dic   添加另一字典的元素, key是copy,obj是retain的
+	-setDictionary:dic			自身所有元素删除[removeAll], 再添加另一dic的内容.
+	
+3. 删除元素
+	- removeObjectForKey:
+	- removeAllObjects
+	- removeObjectsForKeys:arr
+	
+	
+------------9. 数值/struct的装箱与拆箱 -------------------------------------------------
+不同于java, java只是数组类型有对应的对象.如Integer,Double,Boolean,
+ObjC除了数组,还有char,还有结构体struct.
+
+ObjC中两个类 NSValue,NSNumber(子类)
+	
+	
+1. 数值装箱, 拆箱 
+	+numberWithChar/Int/FLoat/Double/Bool/Integer
+	-charValue/ int/float/double/boolValue
+	
+	//int,double,char,bool都是数值, 使用同一个类NSNumber对象装
+	//装拆后的结果, 可看官网NSNumber例子.
+	
+2. NSNumber 其他方法 
+	stringValue		转换成字符串
+	-compare:num 	与另一NSNumber比较大小
+	-isEqualToNumber:   
+	
+3. 结构体装箱,拆箱 NSValue
+	常用结构体
+	+valueWithRange: NSRange
+	+valueWithCGSize: CGSize
+	+valueWithCGRect
+	+valueWithCGPoint
+	+vlaueWithCGAffineTransform
+	rangeValue		返回属性
+	-CGPointValue	返回point结构体
+	-CGSizeValue
+	-CGRectValue
+	...
+	...还有各种各样不认识的装拆
+	
+4. NSValue 其他方法
+	-isEqualToValue: NSValue
+	
+5. 自定义结构体的装箱,拆箱 [即与NSValue互相转换]
+	1.官网一方法: 对NSValue进行扩展, 以后就可直接用了
+	2. 使用+value:withObjCType:, -getValue: [void,参数是内存地址]
+		Xiaomin xm = {};
+		char *xmType = @encode(Xiaomin);
+		NSValue *vl = [NSValue value:&xm withObjCType:xmType];
+		
+		Xiaomin xm2; 
+		[vl getValue:&xm2];
+	
+	
+---------10. 扩展 NSNull ---------------------------
+是个单例类, 只有一个方法 
+	+null  返回NSNull
+	
+很多方法的多个参数以nil结尾, 当中间想插入nil的时候呢?
+使用NSNull对象替代.
+
+
+---------11. 扩展 @符号, JSON表达式  -----------------------------
+
+@还有装箱的作用:
+NSNumber *num = @100;
+NSNumber *chr = @'A';
+		*dbl = @10.01287;
+		*bool = @YES;
+		*sum = @(1+2*3);    还可带括号,表达式. 但最终内容都是基本数组类型 
+		*enum1 = @(spring);  枚举内容
+		
+NSArray  *arr = @[1,2,3];	结尾不需要nil
+NSDictionary  *dic = @{@"A":@200; @"B":@'C'};	//数组和字典可直接写, 那JSON就好办了
+	@[
+		@{@"A": @[1,2,3]},
+		@{}
+	]   
+	另:  arr[0] = @100;  dic[@"A"] = @456;  形式
+	
+	
+--------- 12. 反射 -----------------------------------
+来自于NSObject协议,   即每个类都有的方法
+
+1. 判断对象类型
+	+class,+superclass 返回Class类对象
+	-isKindOfClass : [xm isKindOfClass:[Xiaomin class]] 判断一个对象是否为某种类型（如果是父类也返回YES）
+	-isMemberOfClass:	判断一个对象是否是某个类的实例化对象
+	-conformsToProtocol:    [xm mtd:@protocol(NSCoping)] 是否实现了某个协议
+	-respondsToSelector:	[xm mtd:@selector(doXX:)]	 是否存在某个方法
+
+2. 动态调用id的方法
+	-performSelector:		[xm mtd:@selector(doXX:) withObject:obj]
+			动态调用一个方法，注意如果有参数那么参数类型只能为ObjC对象，并且最多只能有两个参数
+	创建方法
+	SEL sl = NSSelectorFromString(@"doXX:");  //名字也要带冒号:
+	[xm performSelector:sl];
+	
+3. 动态生成一个类
+	Class myClass=NSClassFromString(@"Xiaomin");
+	Xiaomin *xm = [[myClass alloc] init];
+	
+4. 	类/方法转为字符串 (以便动态创建时使用string)
+	NSStringFromClass([xm class]);
+	NSStringFromSelector(SEL类型);		//两个是C语言方法
+	
+	
+
+------------- 13. 拷贝 -------------------------------------
+深拷贝, 浅拷贝
+copy/multableCopy(生成可变对象), 要实现NSCopy/NSMultableCopy协议
+
+要理解copy,retain的关系,  copy要重写-copyWithZone方法
+
+
+
+--------------14. 字符串的引用计数器 retainCount -------------
+同java的String
+
+1. NSString *str = @"xxx";   存储在常量区, count=-1.
+	str = [NSString stringWithString:@"xxx"] 仍然是常量区的, count=-1.
+	[str retain];		对常量区增加计数, 仍为-1
+		
+2. NSMutableString *str2 = @"xxx";  count = -1;
+	[NSMutableString stringWithString:@"xxx"];  这个却是1.
+	
+3. stringWithFormat:@"xx"]   count=1.
+	stringWithFormat:@"xx%@",@"aa"];   count=2;  两个字符串了...其他情况呢
+	
+	
+------------- 15. 文件操作 --------------------
+NSFileManager类, 与NSFileManagerDelegate协议
+文件/目录的操作
+
+
+
+--------------16. 持久化对象  XML,DB等 ----------------------
+即是序列化, 将对象保存到硬盘的操作.
+1. xml属性列表 		生成.plist
+2. NSKeyedArchiver 	加密归档 
+3. NSUserDefaults  	偏好设置
+4. SQLite3     	此处无
+5. Core Data	此处无
+
+1. XML属性.plist
+	特点: 1. 明文保存的. 2. 只能保存Array,Dictionary及其可变形式两种.(对象内容是String,Number,Data等)
+	归档调用arr/dic.writeToFile;   解档调用arrayWithContentOfFile/dictionaryWithContentsOfFile
+  e.g 
+	path = @"/User/xxx.plist";
+	NSArray *arr = [@"abc",@"123",nil];
+	[arr writeToFile:path automically:YES];
+	
+	生成的XML的ROOT会根据JSON类型分为Array,Dictionary
+	
+	
+2. 加密归档
+   使用NSKeyedArchiver进行加密归解档对象更广, 适用于所有对象[需实现NSCoding].
+   
+   //注意: OSX上是NSArchiver,NSUnarchiver; IOS上的是NSKeyedArchiver和NSKeyedUnarchiver
+ e.g 
+   1. 简单归档(单对象)
+   path = @"/User/xxx.arc";   //注意后缀是arc
+   if(![NSKeyedArchiver archiveRootObject:str  toFile:path){   //str可是其他对象
+	//归档失败
+   }
+   NSString *str2 = [NSKeyedArchiver unarchivedObjectWithFile:path];
+   //返回的是id, 可赋为其他对象
+   
+   2. 复杂对象归档(多对象归档)
+	NSMutableData *tmpData = [MSMutableData new];
+	NSKeyedArchiver *ach = [[alloc] initForWritingWithMutableData: tmpData];
+	[ach encodeIni:xmInt forKey:@"xInt"];		//基本类型
+	[ach encodeSize:size forKey:@"xSize"];		//结构体
+	[ach encodeObject:number forKey:@"xNum"];	//对象
+	[ach encodeObject:dic1 forKey:@"xDic"];
+	[ach finishEncoding]; 						//最后结束归档
+	[tmpData writeToFile:path atomically:YES];  //临时数据写到文件
+	
+	NSData *data = [[NSData alloc] initWithContentOfFile:path];		//读文件到data
+	NSKeyedUnarchiver *unach = [[alloc] initForReadingWithData:data]; //data解码成对象
+	int2 = [unach decodeInt64ForKey:@"xInt"];
+	num2 = [unach decodeObjectForKey:@"xNum"];
+	[unach finishDecoding];					//结束解档
+	
+	
+   自定义类的归解档, 实现NSCoding
+   Person.m 
+   -(void)encodeWithCoder:(NSCoder *)cd{
+		[cd encodeObject:_name forKey:@"name"];
+		[cd encodeInt64:_age forKey:@"age"];
+   }
+   -(id)initWithCoder:(NSCoder *) cd{
+		if (self = [super init]) {		//赋值?
+			self.name = [cd decodeObjectForKey:@"name"];
+			self.age = [cd decodeInt64ForKey:@"age"];
+		}
+   }
+   
+   自定义类的单对象归解档:
+   [NSKeyedArchiver archiveRootObject:person toFile:path];
+   
+   
+   3. 偏好设置 NSUserDefaults
+	只能存储通常的5大类型对象, 而且不能存储Mutable可变对象[需要则先转化].
+	此种存储能轻量保存一些用户信息,本地设置,config等.
+	类是单例对象,文件也是单个[不用设path和后缀], 只操作就好了.
+	
+	NSUserDefaults *userDefault = [NSUserDefaults standardUserDefaults];  //取单例
+	[userDefault setObject:name forKey:@"name"];  //同使用Map一样, 相同key的值会被覆盖
+	[userDefault synchronize];  //同步到磁盘
+	
+	NSString *name = [userDefault stringForKey:@"name"];
+		-integerForKey:
+		-doubleForKey:
+		-valueForKey:   返回Date
+		-arrayForKey:
+		
+   
+------------------------------------------------------------
+	
+	
+
+
+
+	

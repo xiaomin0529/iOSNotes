@@ -1,0 +1,350 @@
+
+1.Xcode上的C语言Hello world
+  新建--OS X--Application--Command Line Tool, 语言选C--确定
+
+  生成一个 .c文件
+
+  #include <stdio.h>
+  int main(int argc,const char * argv[]) {	//背下来
+	printf("");
+	return 0;
+  }
+  //C中char是字符串， printf()是打印不换行。
+
+  #XX是预处理命令，在编译前即处理。
+
+
+  //在.c中调用一个方法必须写在前面，或者在前面声明方法。按顺序的
+	但是通常是一个 .h一个 .c，在.h中声明成员，.c中实现而不用考虑顺序问题。
+
+
+2. C语言数据类型
+   基本类型： 
+	int,float,double, char(同java的char）
+
+   构造类型：
+	数组，结构体struct,枚举enum, 共用体union
+
+   指针类型void*
+   空类型  void
+  
+
+   类型修饰符： short,long 修饰int,double.
+	signed,unsigned 修饰 int char
+   //经常修饰int,此时int可省略。
+   //signed,unsigned不改变长度，仅表示最高位是否为符号位。unsigned表>=0的正数。
+   //如int 范围-32768到+32768,则unsigned int范围0到65535
+   
+
+3. C语言运算符
+  同java几乎一样
+  注意点：没有boolean类型， 因此true时返回1，false时返回0. 相反，不为0的正负数都为true
+
+ 
+
+
+4. C语言的数组 与字符串
+  数组同java
+
+  C中没有String概念， 想要字符串就用char[]
+  字符串是个特殊的数组，最后一个元素要是'\0'.
+  char[] str = {'a','b','\0'};
+  printf("%s",str);  //%s代表字符串。
+或者
+  char * str = "xiaomin"; //此时\0编译器会自动加。
+
+
+5. C语言的指针
+  int a=1;
+  int *p;
+  p = &a;  // &变量， 为取变量的地址，打印地址用 %x
+  printf("%x,%x",&a,p);
+  printf("%d,%d",a,*p);
+  //即取指针时， &a==p, 取指针对应变量时, a==*p
+
+  //注意：声明时 int *p=&a; 声明后 p=&b;
+
+
+6. 数组与指针
+   指针指向数组是arr[0]的地址， 即int *p=a;等价于int *p=&a[0];
+   如果要指向arr[1]呢？  int *p=&a; 则*(p+1)==a[1]; 或写成 *(p++)
+   //指针加1代表地址向后挪动所指向类型的长度位（这里类型是int，长度为2）
+  
+   1 数组名a==&a[0]==*p；
+   2 如果p指向一个数组，那么p+1指向数组的下一个元素，同时注意p+1移动的长度并不固定，具体需要根据p指向的数据类型而定
+   3 指针可以写成p++形式，但是数组名不可以，因为数组名是常量
+   4 不管函数的形参为数组还是指针，实参都可以使用数组名或指针；
+
+
+7. 字符串与指针
+   C语言中字符串就是字符数组
+   char[] str = "xiaomin";
+   printf("%x,%s",str,str); //不同格式参数，输出不同结果，一个数组地址，一个string
+
+   //指针存储的是地址，而数组名存储的也是地址, 因此
+   char *p = "xiaomin";
+
+8. 函数指针
+  简单的函数解析：
+  char * toUpper (char *a) { //转换大写, 指针与数组一样，因此参数亦为char[] a
+	char *b = a;
+	int len = 'a'-'A';
+	while (*a!='\0') {  //字符是否结束，即数组最后一个标志位
+	  if (*a>'a' && *a<'z')
+		*(a++) -= len; //*(a++)是数组下一元素，并配合到while
+	}
+	return b;  //修改了a 会反应到b， 因为指向同一地址
+  }
+
+  //指针作为C语言的数据类型，可以作为参数、作为返回值!
+  int operate(int a,int b, int (*p)(int,int)) { //第三参数传递函数指针
+     return p(a,b);
+  }
+  int sum(int a,int b){ return a+b;}
+
+  int (*p)(int,int)=sum; //定义函数指针,它返回int,有两个int参数，并将sum()赋给它
+  operate(1,2,sum);      //传入数据和函数。 //怎么长的很像回调啊。
+
+
+ 
+============  C语言的预处理  ================================
+由于预处理指令是在编译之前就进行了，因此很多时候它要比在程序运行时进行操作效率口文档
+
+三类预处理指令： 宏定义#define， 条件编译#if else endif，  文件包含 #include ""/<>
+
+(1) 宏定义
+   宏定义在编译之前进行替换，相比定义全局变量或函数效率更高。
+   //即编译前就有了， 相比运行时定义会更早。
+  如：
+   #define PI 3.14   //记得结尾不加分号;
+   #define S  2*PI   //引用前面定义的宏
+
+   #undef PI  	     //强制终止宏，  否则它范围一直到文件结束。
+测试：既有宏又有临时同名变量时， 使用哪一个
+    答：会报错或未知错误。 宏会替换变量名。
+	#define xm 10
+	int xm = 30;
+     替换后为：  int 10 = 30; 
+
+ >定义宏方法：
+   #define SUM(a,b)  a+b  //宏名与()中间不能加空格。a+b可加括号 SUM(a,b) (a+b)
+   #define MUL(a,b)  a*b
+
+//注意：宏是替换的作用， 而不是先计算再替换
+   int c = SUM(1,2)*2; //替换结果为 1+2*2==5; 而不是(1+2)*2==6; 因此记得加括号啊！
+
+ >替换常用方法
+  #define printStr(str) NSLog(@"%@",str)    //不需要加分号, 调用后加;一样.
+  #define LoadImage(file) ([UIImage imageWithContentsOfFile: \       //换行用 / 号
+		[[NSBundle mainBundle]pathForResource:file ofType:nil]])  //带空格的话最外面都应有括号
+
+
+
+(2) 条件编译 (和#define搭配着使用的)
+   即预处理时根据if else是否加入此段代码. 同JSP中<%if else %>
+   不同于#define宏定义在最前面, #if可定义在任何一处.
+
+   #define COUNT 1
+   int main(xx) {
+      int a;
+      //判断有宏
+      #if defined(COUNT)    //等价于 #ifdef XX
+         a = COUNT;
+      #else
+	 a = 0;
+      #endif
+
+     //判断没有宏
+     #if ! defined XX	  //等价于 #ifndef COUNT
+     #endif
+
+     //宏是否为此种定义
+     #if COUNT==1    // 不能判断 SUM==a+b， 好像永远都为真
+     #endif
+
+     
+
+	
+   }
+
+(3) 文件包含
+  编译前把导入的文件替换, 应该包含.h文件.
+  两个文件不能互相#include
+
+  还有重复include同个文件会降低编译性能. (OC的#import不会重复导入)
+  防止重复的办法 :  #ifndef + define + endif
+  #ifndef _FILENAME_H_    //命名规则:filename.h 换成_filename_h_的大写.
+  #define _FILENAME_H_
+
+  #include "xx"
+  void mtd(){}
+
+  #endif
+
+  //第一次预处理,没有宏定义, 进入#define定义,及以后所有代码.
+    第二次预处理,有了宏, 则不进入代码了.
+
+
+
+
+------ C语言 变量的作用范围, 存储方式, 可访问性-(没太多意义呀)---------------------------------------
+(1)变量作用范围
+  同java
+(2)变量存储方式
+  静态变量: 全局变量和static 变量
+    整个程序中只会初始化一次, static变量(即使局部的)也是,且只到程序结束才释放
+    //全局变量不同于java, 其他include的文件也能直接用.
+    //如果两个文件定义相同的全局变量, 则调用的同一个.
+
+  自动变量:即局部变量(未加static的),同java
+    
+  寄存器变量:
+    寄存器存储空间很小，但是它的效率很高，那么合理使用寄存器变量就相当重要了
+    register int/char 的非静态局部变量
+
+
+(3)可访问性
+   C中没有public,private, 但有相似功能的extern, static 
+
+   extern 用于声明一个已经存在的变量,即使它定义在后边.
+ 如
+   int b=a;
+   int a;  //错误
+
+   extern int a;
+   int b = a;
+   int a;      //不声明a时,编译不报错,运行报错.
+ // 另一种情况
+   int a;
+   int b=a;
+   int a; //正确, 上边的int a默认是extern
+
+ //另一种情况
+  int a;
+  void mtd() {
+     extern int a; //虽然声明为局部变量, 但实质还是全局变量.
+  }
+
+  
+  extern修饰的函数是外部函数,其他文件可访问. 默认所有函数都是extern,可省略
+  但外部函数在其他文件中不能重名的, 会报错.
+
+  static修饰的函数则是内部函数,其他文件不可访问.
+ 
+
+------- C语言的构造类型 (重点)---------------------------
+ 分为: 结构体structs, 枚举,数组, 共用体
+
+(1)struct结构体:
+
+  struct Date { int year;int month;int day;};  //(成员有类型，都以分号结尾，{}后也有分号)
+  struct Person {
+	char *name;   //数组字符串
+	struct Date birthday;  //可再包含struct,声明变量时仍加struct
+  };
+
+  定义并赋值 :
+  struct Person p={"xiaomin",{1987,5,29}}; //不可以先定义再初始化哦:即struct Person p; p={}是错误的
+					   //但可分别赋值 :p.name=“”;p.birthday.year=1987;或方法返回
+  调用:
+  char *name = p.name;
+  int year = p.birthday.year;  //这个就很像OC的frame啦.
+
+  1.可以在定义结构体类型的同时声明结构体变量；
+  2.如果定义结构体类型的同时声明结构体变量，此时结构体名称可以省略 ?(实践一下看)
+  3.定义结构体类型并不会分配内存，在定义结构体变量的时候才进行内存分配（同基本类型时类似的）
+    实践：
+	struct  XX { int a;} var;
+	struct {int a;} var;   //不过只能用一次， 此类型不能再定期另一变量了。
+  
+(2)struct数组,struct指针:
+    struct Person persons[] = {
+	{"xm",{xxx}},
+	{"xm",{xxx}}
+    };
+   指针:
+   struct Person p1 = persons[0];  //数组元素1
+   struct Person *p = &p1;	   //*的指针,指向&p1
+   char *name = (*p).name;	   //取struct里的值
+   name = p->name;		//或者用->取值.
+  
+
+(3) 枚举 enum
+     C语言中枚举类型是作为整形常量进行处理的. (int型常量)
+    enum Color{
+	red,green,blue  //struct有变量类型. enum没有,只有名字
+    };
+
+    //默认情况下,enum的值=顺序. red=0,green=1,blue=2
+    如果给其中一个赋值, 则后面的++
+
+    enum Color r = red;
+    if (r==green){}
+    printf("%d",color); //值为0
+
+(4) 共同体
+   union 用的不多
+
+
+
+---------typedef 关键字---------------------
+作用: 重新定义类型, 缩写类型长度
+
+1. 重新定义类型名
+   typedef int xmInt; 
+   typedef char * xmString; 定义 char* 为字符串
+   typedef xmInt xmInteger;  重新定义后还能再重新定义.
+
+   xmInt a = 10;
+   xmInteger b = 10;
+   xmString c = "aaa";   //不是NSString类型, 不要@""
+   
+2. 缩写类型长度, 如struct,enum,方法指针 等
+   //结构体
+   struct Person {
+	NSString *name;
+	int age;
+   };
+   typedef struct Person  myPerson;
+   myPerson person= {"xiaomin",29};
+
+   //枚举
+   enum Sex {Man, Woman};
+   typedef enum Sex xmSex;
+   xmSex s = Man;
+
+   //方法
+   int method(int a,int b) {return a+b;}
+   typedef int (*p)(int,int) xmMtdPoint;  //方法指针类型的类型
+   int main() {
+        int (*p)(int,int) = method;
+	xmMtdPoint = method;
+        int c = p(1,2);
+	c = xmMtdPoint(2,3);
+   }
+
+   //结构体/枚举/方法声明 与 typedef结合简写:
+   typedef struct {
+	NSString *name;
+	int age;
+   } myPerson;
+   typedef enum{Man, Woman} mySex;
+   typedef int (*xmPnt)(int,int);  //名字是xmPnt
+
+   xmPnt p = add;  // 不能用xmPnt *p也不能用 =&add. 已经是指针类型了.
+   int c = p(2,3);
+
+
+------typedef类型定义与#define宏定义区别--------
+typedef char * String1 是生成新的类型
+
+#define String2 char*  则是将此句以下直至#undefine的所有代码中,除""内之外的xmInt都替换成int
+
+String1 a1,a2; 两个都是字符串
+String2 a1,a2; 替换完后, char *a1,a2; a1是字符串, a2是char.
+
+
+ 
+-------------------------
+//所有宏、枚举、常量都大写加下划线命名。
+// &变量， 为取变量的地址，打印地址用 %x

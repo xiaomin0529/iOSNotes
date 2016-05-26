@@ -1,0 +1,278 @@
+
+=======-----UIApplication类 与 UIApplicationDelegate协议  ==========================
+
+App启动时, main()调用UIApplicationMain方法. 方法创建了单例对象,此后访问application对象
+  调用[UIApplication sharedApplication];
+  
+application维护一个打开的窗口的列表(ui窗口对象),通过这些可以检索应用程序的任何UIView对象。
+
+application可启动其他程序, 通过openURL启动其他程序并显示信息.
+........
+
+
+------------------ 生命周期 -----------------------
+1. 看启动过程
+  int main(xx) {
+	 return UIApplicationMain(argc,argv,nil,NSStringFromClass([AppDelegate class]);
+  }
+  UIApplicationMain方法: 
+	第三参数传UIApplication的子类,nil则传UIApplication本身
+	第四参数为UIApplicationDelegate委托类, 默认是传入AppDelegate类,也是默认生成的类.
+  
+  通过调用main函数创建了一个UIApplication对象，		--创建
+	UIApplication对象负责监听应用程序的生命周期时间，  --只监听
+	并将生命周期事件交由AppDelegate代理对象处理。		--传给代理
+	
+2. App状态
+	not run	 -- 未启动
+	inactive -- 运行在前台,但未处理事件
+	active   -- 运行在前台,正在处理事件 
+	background -- 在后台, 还在内存中,并且执行代码
+	suspend    --中断. 还在内存中,但不运行代码. 如果内存不足自动kill
+	
+	注意: active转到back, 是active--inactive--background.   inactive与back是互转的
+	
+	
+3. 启动[在appDelegate中,其实仍是application调用代理的]
+	will/didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+		launchOptions里保存app启动原因: 
+		1.用户点击启动,无数据. 
+		2.其他程序openURL:
+		3.本地通知启动
+		4.远程通知启动
+		5.蓝牙
+		等等. 详细查看 UIApplicationDelegate中的Launch Options Keys
+		
+		方法返回BOOL,决定是否处理URL资源，如果返回YES,会调用openURL:options来处理.
+		//如will和did都存在,则两个必须都返回YES才行.
+
+4. 运行 
+	启动完成后, 程序状态为 inactive. 变为active时会执行:
+	applicationDidBecomeActive:  //没有will哦
+	
+	第一次启动或程序恢复前台状态时，都会先执行这个方法. [因为active只和inactive转变,back经过in才能变active]
+	
+	
+5. 中断情况
+	在执行时按下Home,突然来电,执行时点击消息推送等
+	applicationWillResignActive:    //resign:放弃.  will放弃活动
+	执行顺序:
+	willResignActive,		马上不活动
+	didEnterBackground,		已进行后台
+	willEnterForeground,	马上进行前台
+	didBecomeActive			已活动
+	
+	通常情况下，我们应该在willResignActive:方法中执行下列操作：
+		停止timer和其它周期性任务
+		停止任何正在运行的请求
+		暂停视频的播放
+		如果是游戏那就暂停它
+		减少OpenGL ES的频率
+		挂起任何分发的队列和不重要的操作队列(你可以继续处理网络请求或其它时间敏感的后台任务)
+	
+	didEnterBackground: 有时也处理同上的操作
+	
+6. 程序终止
+	applicationWillTerminate:
+		通常是用来保存数据和一些退出前的清理工作，需要要设置UIApplicationExitsOnSuspend的键值。
+		
+
+		
+以上为app生命周期
+-----------------UIApplication------------------------------------
+成员:
+2.  UIWindow窗口
+	keyWindow , windows
+	
+3. 控制处理事件
+	-sendEvent:
+	-sendAction:等 
+4. 打开链接
+	-openURL:
+	-canOpenURL:
+5. 配置用户Notification设置
+	-registerUserNotificationSettings:
+	-currentUserNotificationSettings
+6. 注册远程Notification
+	- registerForRemoteNotifications  ...
+7. 注册本地Notification
+	- scheduleLocalNotification: ....
+8. 后台执行
+	applicationState		程序状态: 见上面
+	backgroundTimeRemaining	 计算进入后台的时间
+	backgroundRefreshStatus		app是否可以后台执行
+	- setMinimumBackgroundFetchInterval:
+	- beginBackgroundTaskWithName:expirationHandler:
+	- endBackgroundTask:		结束后台任务
+	
+9. 空闲状态计时器 Timer
+	idleTimerDisabled   一段时间不活跃,系统sleep. //所以在放视频,相机等设置不sleep
+10. 'Restoration状态恢复'行为 [如崩溃后恢复]
+11. 主屏幕3D Touch行为
+12. 控制App外观
+	statusBarFrame
+	networkActivityIndicatorVisible  能否打开/关闭网络
+	applicationIconBadgeNumber  	 图标右上角'未读'数量
+	userInterfaceLayoutDirection	 UI方向: 左向右, 右向左
+	preferredContentSizeCategory	 设置里的:字体大,小
+	statusBarOrientationAnimationDuration	状态栏方向变化时动画时间
+	
+13. 多种常量与通知
+
+-----------  UIApplicationDelegate协议 -----------------------
+1. 控制app state转换
+	前/后台,活动/非活动,启动/终止 转化
+	
+2. 处理Notification通知,和后台下载
+	-didReceiveRemoteNotification:  收到remote通知后调用
+	-didReceiveLocalNotification:  	收到本地通知后调用
+	-handleActionWithIdentifier: forRemote/LocalNotification   点击通知后,开始处理
+	-performFetchWithCompletionHandler:  	开始后台下载调用
+	-handleEventsForBackgroundURLSession:	已下载好,程序'未启动'时, 调用它来处理
+	-applicationDidReceiveMemoryWarning: 	内存不足时系统提醒代理. 代理让VC清理对象
+	-applicationProtectedDataWillBecomeUnavailable:  锁屏时,通知受保护文件将不可用了.
+	
+3. 处理App恢复
+4. 继续活动,处理快速活动??
+5. 手表Kit,健康Kit
+6. window  属性    	为storyboard提供一个window
+	在didFinishLaunchingWithOptions中,delegate新建一个window对象.并makeKeyAndVisible保证是活动窗口
+	self.window = [UIWindow alloc]..;  //新建window,并赋给自己的属性
+	[self.window makeKeyAndVisible];   //UIWindow方法,使UIApplication的keyWindow为自己. 
+
+=============== UIWindow =============================================================
+是UIView的子类, 但UI中显示是在UIView之上. 
+Window是相框, View是相框里的画布.
+
+成员:
+1. 配置窗口
+	windowLevel
+	screen
+	rootViewController
+	
+2. 使窗口为关键窗口 [即活动的]
+	窗口可有多个,UIApplication中windows, 但keyWindow只有一个,即最后一个makeKeyAndVisible的.
+	keyWindow
+	-makeKeyAndVisible
+	-becomeKeyWindow
+	-makeKeyWindow
+	-resignKeyWindow
+	
+3. 转变坐标
+	-convertPoint: toWindow/fromWindow
+	-convertRect: toWindow/fromWindow
+
+	
+--------------UIView一些成员 (未学习完全) -------------------------------------
+1. 部分属性
+	tintColor  		相对于背景色, 它是线条颜色. 如UISwitch的边框色. 它会向subViews传递
+	clipsToBounds  	subViews能否超出它边界
+	clearsContextBeforeDrawing     有关缓存,draw
+	maskView	透明通道channel, 如同多张透明png
+	layer		 返回CALayer对象. Core Animation layer核心动画层
+	+layerClass  
+
+2. 触摸控制
+	userInteractionEnabled    如设为NO, 则一切事件忽略
+	multipleTouchEnabled
+	exclusiveTouch			独有touch. YES时, 窗口中只能点击这个View,其他View阻塞了.
+	
+3. 视图层级
+	window 		如View还未加入window则返回nil
+	- exchangeSubviewAtIndex:withSubviewAtIndex:  调换两视图位置,使用index
+	-isDescendantOfView:  是否是参数的subView或本身
+	-insertSubView: atIndex/below/above
+	
+4. 调整,适应
+	autoresizingMask	自动调整: width/height,或上下左右Margin自动调整
+	autoresizesSubviews		当bounds改变时, 是否调整subViews
+	contentMode			内容模式:指定layer的缓存位图在bounds改变时如何调整. 常与contentStreth结合使用.
+						在内容在重画时,是否变形或钉在某个点. 如要强制内容重画,用setNeedsDisplay
+			ScaleToFill:	fit改变比例
+			ScaleAspectFit	保持长宽比. 边界外透明
+			ScaleAspectFill	填充满视图, 有些部分可能被裁剪掉clip
+			Center/top/left...	固定在View中心,大小不变
+	-sizeThatFits:		重写它, 计算合适尺寸
+				
+5. 布局子视图
+	-setNeedsLayout		不懂....
+	-layoutIfNeeded	 在重画前立即布局
+	+ requiresConstraintBasedLayout
+	translatesAutoresizingMaskIntoConstraints	是否转为Auto Layout约束
+	
+6. 布局锚点约束 layout Anchor
+7. 约束
+	constraints	
+	-add/removeConstraint[s]
+8. AutoLayout相关
+10.运动效果
+	motionEffects
+	-add/removeMotionEffect
+	
+11.监听View相关变化	[动态或受其他控制时,变化前后作处理]
+	-will/didAdd/RemoveSubView	增删子view
+	-will/didMoveToSuperView	换另一个父视图中
+	-will/divMoveToWindow		换window(很少吧)
+	
+--------------- UIStoryboard ------------------------------------------------
+1. 取SB对象:  +storyboardWithName: bundle:   //nil则取mainBundle
+2. 取其中的ViewController
+	-instantiateViewControllerWithIdentifier:
+	-instantiateInitialViewController		//取initialVC,第一个进入sb的
+没了
+
+--------------- UIViewControler (未学习完全) --------------------------------------------------
+VC编程指导:(按左边列表查看,要好好拜读)
+	https://developer.apple.com/library/ios/featuredarticles/ViewControllerPGforiPhoneOS/index.html#//apple_ref/doc/uid/TP40007457
+
+1. VC与storyboard
+	[sb instantiateViewControllerWithIdentifier:  从storyboard中取某VC
+	storyboard 									VC来自于的sb
+	-prepareForSegue: 	 				执行转场
+	-performSegueWithIdentifier: 		通常segue会自动初始化的,当segue不能在sb中配置时[动态生成?]用此方法.
+	-shouldPerformSegueWithIdentifier:  	过渡前判断,如NO则忽略
+			....还有unwindSource, 未绑定segue的VC相关
+	
+2. 处理View
+	-isViewLoaded   是否view已完全加载好
+	title  		VC名称,方便可视化
+	preferredContentSize	当popover时,设置view大小.
+	-will/did[Dis]Appear
+	
+3. 处理View旋转(rotation): 	当View横竖屏切换时调用.UIKit调用window's rootVC,
+	然后root通知childVC. 当旋转发生时,会按顺序调用:
+	-willRotateToInterfaceOrientation: duration:		//马上旋转
+	-willAinateRotationToInterfaceOrientation: duration	//动画旋转
+	-didRotateFromInterfaceOrientation:					//完成
+	-viewWillLayoutSubviews				//完成后重新layout
+	    //在启动时,在didFinishLaunch方法里应设置默认方向.
+
+4. 控制tabbar,navigation[如有]
+	tabBarItem
+	navigationItem		单例
+	toolbarItems				可选的底下的toolbar里的itemArray
+	hidesBottomBarWhenPushed	是否显示toolbar
+	setToolbarItems: animated:	
+	
+5. 自定义'容器'VC.[容器,包含childVC.同tab,navigate么]
+6. 状态保留和恢复.  //可三个地方使用: 代理,VC,自定义view;  http://www.2cto.com/kf/201301/186384.html
+7. VC可编辑(editing)
+8. 键盘命令
+	addKeyCommand:		(是键盘上'发送','执行'等自定义功能吗?)
+	removeKeyCommand:	使更容易使用键盘命令,不用再重写父类keyCommand属性了.
+	
+9. 控制状态栏(永远在最上边的)
+	-prefersStatusBarHidden  			隐藏状态栏
+	-preferredStatusBarStyle			当前状态样式
+	-preferredStatusBarUpdateAnimation	当前显隐statusBar的动画style
+	-setNeedsStatusBarAppearanceUpdate	当状态栏属性改变时调用
+	modalPresentationCapturesStatusBarAppearance	当使用presentVC来转场时,XXX特定情形
+	
+	
+	
+	
+	
+	
+	
+	
+	

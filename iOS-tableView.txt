@@ -1,0 +1,85 @@
+
+
+
+
+-------------------------------------------------
+20160407 tableView的cell右边划动出现'删除'等按钮
+ 使用delegate. tableView:editActionsForRowAtIndexPath
+
+ 删除:  [dataArray removeObjectAtIndex:indexPath.row];
+	[tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation
+ 置顶:  [dataArray exchangeObjectAtIndex:indexPath.row withObjectAtIndex:0];
+	NSIndexPath *firstIndexPath = [NSIndexPath indexPathForRow:0 inSection:indexPath.section];
+	[tableView moveRowAtIndexPath:indexPath toIndexPath:firstIndexPath];
+ 
+  方法返回action数组: return @[deleteAction,topAction];
+------------------------------------------
+20160407 tableView编辑模式
+http://blog.sina.com.cn/s/blog_51a995b70101iwgx.html
+
+多选: 点击一行后,尾部打勾. 再点击取消打勾
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath { 
+    UITableViewCell *oneCell = [tableView cellForRowAtIndexPath: indexPath];
+    if (oneCell.accessoryType == UITableViewCellAccessoryNone) {
+        oneCell.accessoryType = UITableViewCellAccessoryCheckmark;
+    } else 
+        oneCell.accessoryType = UITableViewCellAccessoryNone;
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];   //已选变为未选
+}
+
+编辑模式之move:
+//打开编辑模式后，默认情况下每行左边会出现红的删除按钮，这个方法就是关闭这些按钮的
+- (UITableViewCellEditingStyle)tableView:(UITableView *)tableView
+           editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath { 
+    return UITableViewCellEditingStyleNone;       //三种模式: none/insert/delete, 分别左边出现+-按钮.
+} 
+//这个方法用来告诉表格 这一行是否可以移动
+- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath { 
+    return YES; 
+}
+
+//这个方法就是执行移动操作的
+- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)
+        sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath {
+    NSUInteger fromRow = [sourceIndexPath row]; 
+    NSUInteger toRow = [destinationIndexPath row]; 
+    
+    id object = [list objectAtIndex:fromRow]; 
+    [list removeObjectAtIndex:fromRow]; 		//移动实现是先删再插
+    [list insertObject:object atIndex:toRow]; 
+}
+
+//编辑状态下不可select行. 因此相select只能设置打开关闭editing
+
+-----------------------------------------------
+
+标记行,移动行, 删除/插入行
+http://www.360doc.com/content/15/0722/20/26281448_486717834.shtml
+
+动态增加/删除行cell
+	insertRowsAtIndexPath: withRowAnimation: 在指定位置插入行
+	deleteRowsAtIndexPath: withRowAnimation: 删除指定行
+	
+  调用以上API之前，必须先调用beginUpdates，完成后再调用endUpdates
+
+
+排序
+
+只要实现-(void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath;代理方法当UITableView处于编辑状态时就可以排序。
+
+#pragma mark 排序
+//只要实现这个方法在编辑状态右侧就有排序图标
+-(void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath{
+    KCContactGroup *sourceGroup =_contacts[sourceIndexPath.section];
+    KCContact *sourceContact=sourceGroup.contacts[sourceIndexPath.row];
+    KCContactGroup *destinationGroup =_contacts[destinationIndexPath.section];
+    
+    [sourceGroup.contacts removeObject:sourceContact];
+    if(sourceGroup.contacts.count==0){
+        [_contacts removeObject:sourceGroup];
+        [tableView reloadData];
+    }
+    
+    [destinationGroup.contacts insertObject:sourceContact atIndex:destinationIndexPath.row];
+    
+}

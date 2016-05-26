@@ -1,0 +1,96 @@
+https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/drawingwithquartz2d/dq_overview/dq_overview.html#//apple_ref/doc/uid/TP30001066-CH202-TPXREF101
+官网指导
+
+
+1.Quartz2D在iOS开发中的价值:
+  绘制一些系统UIKit框架中不好展示的内容，例如饼图
+  自定义一些控件
+  不添加UI控件的情况下，使UI内容更丰富
+  ……
+  iOS中，大部分[控件]都是Quartz2D绘制出来的
+
+
+2.Quartz 2D能完成的工作:
+  绘制图形 : 线条\三角形\矩形\圆\弧等
+  绘制文字
+  绘制\生成图片(图像)
+  读取\生成PDF
+  截图\裁剪图片
+  自定义UI控件
+
+
+------------图形上下文 context ---------------
+就相当于画布，不同类型的画布就是决定着画得内容将展示在哪里
+  Quartz2D提供以下几种Graphics Context：
+	Bitmap Graphics Context 位图上下文，在这个上下文上绘制或者渲染的内容，可以获取成图片（需要主动创建一个位图上下文来使用，使用完毕，一定要销毁）
+	Layer Graphics Context  图层上下文，针对UI控件的上下文
+	Printer Graphics Context
+	PDF Graphics Context
+	Window Graphics Context
+
+1.drawRect:
+  为什么要实现drawRect:方法才能绘图到view上？
+    因为在drawRect:方法中才能取得跟view相关联的图形上下文, 之后就可以绘制东西到view上
+
+2.view.layer属性,
+   drawRect:取得的是 LayerGraphicsContext,绘制的东西其实是绘制到view.layer上去了
+
+3.调用drawRect:
+   当view第一次显示到屏幕上时，系统会创建好相关的Layer上下文
+   系统通过此上下文，在drawRect:方法中绘制好当前view的内容
+   主动让view重绘的时候，调用setNeedsDisplay/setNeedsDisplayInRect:。只调用drawRect:方法是无效的
+   调用setNeedsDisplay/setNeedsDisplayInRect:时,屏幕并不是立即刷新,而是在下一次刷新屏幕时显示出来.
+
+
+--------- 自定义view ---------------------------------------
+自定义步骤:
+  创建UIView子类-->重写drawRect:方法-->方法中取得view的图形上下文-->绘制图形-->利用上下文将图形渲染到view上.
+
+
+ 绘图函数
+  画点 CGContextMoveToPoint
+  线段 CGContextAddLineToPoint
+  矩形 CGContextAddRect
+  ...
+
+
+
+-------  裁剪核心代码 ----------
+// 开启一个位图（图片）上下文 
+//size:上下文尺寸
+//opaque:不透明。一般是透明的，所以设置为NO
+//scale:缩放，如果不缩放，设置为0就好
+UIGraphicsBeginImageContextWithOptions(image.size, NO, 0);
+
+// 描述圆形的路径
+UIBezierPath *path = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
+
+// 把圆形路径设置裁剪区域（将区域外的内容裁剪掉，是现实区域内的内容）
+[path addClip];
+
+// 绘制图片（先设置裁剪区域，再裁剪，才会有效果）
+[image drawAtPoint:CGPointZero];
+
+// 从上下文中内容生成一张图片
+image = UIGraphicsGetImageFromCurrentImageContext();
+
+// 关闭上下文（一定不要忘了关闭自己开启的上下文）
+UIGraphicsEndImageContext();
+
+
+-------- 截屏核心代码 ----------
+// 开启一个跟屏幕一样大的尺寸的上下文
+          UIGraphicsBeginImageContextWithOptions(caputeView.bounds.size, NO, 0);
+
+// 获取自己创建的位图上下文
+CGContextRef ctx = UIGraphicsGetCurrentContext();
+
+// view之所以你能显示内容，是因为有图层，因此只要把图层画到上下文
+// 图层只能渲染，不能绘制
+[caputeView.layer renderInContext:ctx];
+
+// 从上下文中生成一张新的图片
+UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+
+// 关闭上下文
+UIGraphicsEndImageContext();

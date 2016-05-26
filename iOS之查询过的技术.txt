@@ -1,0 +1,56 @@
+
+1. __bridge (前面两个下划线)
+  只在调用C语言的CoreFoundation框架时, 在ARC下转换对象类型时用.
+  NSURL *url = [...];
+  CFURLRef  ref = (CFURLRef)url;   //转换类型
+  ARC环境下:
+  CFURLRef ref = (__bridge CFURLRef)url;  //此只是句柄转让,如果是创建CFURLRef,还要手动释放.
+
+  另外还有:__bridge_transfer, 将CF对象转成OC时,且对象所有权转让
+	   __bridge_retained, 将OC对象转成CF时,且所有权转让.
+
+ NSURL *url = [[NSURL alloc] initWithString:@"http://www.baidu.com"];
+ CFURLRef ref = (__bridge_retained CFURLRef)url;
+ CFRelease(ref); //ARC下手动释放
+
+
+ CFStringRef cfString = ....
+ NSString *ocString = (__bridge_transfer CFStringRef)cfString;
+ //此时获得对象所有权, ARC可自动释放,不必加上CFRelease
+
+
+2. 项目的Project和Target
+   一个Project就是一个工程, 一个Project可有多个Targets,
+   对象不同版本,如免费版\收费版.  可在new - file 中创建新Target....
+
+
+3. Info.plist 相关
+   按照代码文件打开: 右击--open as--source code --- 即打开XML了.
+  
+   新添加节点时,有两大类集合:Array,Dictionary(即JSON),
+		5种基本类型:boolean,Number,String,Date, Data(最后Data是什么样子的?)
+	
+   Info.plist中的key分类:(按XML打开后看)
+	1.CoreFoundation: 以CF开头, 描述常用行为项
+		如app名称:CFBundleDisplayName
+	2.LaunchServices: 加载服务, app加载所依赖的配置
+
+  官网说明: (直接搜key,  Information Properties list)https://developer.apple.com/library/ios/documentation/General/Reference/InfoPlistKeyReference/Introduction/Introduction.html#//apple_ref/doc/uid/TP40009247
+
+
+
+4. size_t , rsize_t:  
+	就是一种整数类型,如int,long. 是由sizeof或typedef重定义的类型
+
+
+5. setValue:是数字时, 使用@(123). 还有其他形式吗?
+  self.iconView.layer setValue:@(-100) forKeyPath:@"transform.translation.x"
+
+
+6. __FLT_EPSILON__ , __DBL_EPSILON__
+  分别对应float/double的.   当两个浮点数比较时,在哪个最小值范围内相等.
+  0.3333和0.3334相等? 还是0.3..N个...3和0.3..N个...4相等呢?  总不能永远不等吧
+  而使用__FLT_EPSILON__时, 会判断浮点数在此平台(不同平台范围不一样)下, 误差在最小范围内相等.
+
+  BOOL isNotZone= floatA > __FLT_EPSILON__;   //此浮点数是否不为0, 不是与0比较.
+  BOOL isEqueal = fabs(floatA - floatB) > __FLT_EPSILON__;    //两者相减的绝对值,是否>0. 但不是与0比较.

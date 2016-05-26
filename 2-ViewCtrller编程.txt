@@ -1,0 +1,478 @@
+
+照官网学习的: View Controller Programming Guide for iOS
+	https://developer.apple.com/library/ios/featuredarticles/ViewControllerPGforiPhoneOS/index.html#//apple_ref/doc/uid/TP40007457
+
+概览:1-3  begin
+-------------------1. ViewController的规则 ----------------
+VC是app内部结构的基础.app至少含有一个VC, 每个VC管理一份UI和
+UI与数据之间的交互. 并且VC帮助UI不同部分之间的过渡.
+
+VC是你做任何事的中心. VC类管理views,处理事件,
+在其他VC间过渡, 和其他App进行交流.
+
+有两种类型的VC:
+内容VC: 管理着独立的内容,且是创建的大多数VC
+容器VC: 收集childVC的信息,使它们不同的方式呈现.
+	
+1. 管理View
+	VC最多的角色是管理Views的层次结构. rootView装着所有内容.
+	★Controller一直拥有rootView的引用, 每个View对它的subViews都是Strong引用.
+	容器VC管理着自己的Views和childVC的rootViews, 但不管理childVC的内容(subViews)
+	
+2. 数据封装 Data Marshaling
+	VC作为views和App的数据的中介. 应一直维持VC与数据之间低偶合.
+	大部分逻辑要保证数据完整, VC验证输入后格式化打包成需要的dataObj,但应最大程度弱化VC管理真实数据的角色.
+	UIDocument是分别管理数据一种方法,document对像可读写以进行持久化存储. 当添加任何逻辑和方法时,只需提取数据到VC
+	VC可储存一份数据的拷贝来使updateView更容易,document仍然保存着真实数据.
+	
+3. 用户交互 Interaction
+	VC继承自UIResponder响应类,有能力处理事件响应链.
+	VC很少直接处理事件,而是使用代理或目标对象(通常是VC自己),使用代理方法或IBAction(??)
+	详见下边iOS事件:
+	
+4. 资源管理(对象内存管理)
+	VC负责它所有的views和创建的对象....当内存警告,UIKit让App释放不再使用的资源. didReceiveMemoryWarning方法
+	删除无用对象引用,或后面可容易创建的,例如删除缓存数据. 
+	
+5. 自适应
+	VC负责让Views匹配潜在环境. 每个App都应适配iPad和不同尺寸的iPhone,
+	与其用多个VC来匹配不同环境, 不如单个VC各个环境都匹配.
+	VC需要应对Traits(特征)变化,如大小,规则,紧凑的变化
+	//详见下边自适应模式:
+	
+-------------------2. ViewController的层次结构 ------------
+UIKit期望你以规定的方式使用VC. 维护VC们合适的关系,确保行为可自动正确的传递给VC.
+
+1. RootViewController:
+	window对象要有一个rootViewController属性,并确保它的内容填满屏幕. 
+	
+2. 容器VC:
+	容器VC可使用易管理可重用部分让你聚集复杂的界面.
+	容器VC混合可选的自身Views和多个childVC创建最终的界面.  //如UINavigationC,UISplitViewC, UIPageViewC.
+	容器VC布局:
+		window--容器作为root--容器View填满屏幕--childView分别占用各小块,最后拼成整屏.
+		
+3. 跳转与过渡VC:(下面有详细)
+	1.无容器VC间的present
+	2.容器VC里chilcVCs之间的切换 + 容器VC与普通VC之间的present
+
+-------------------3. 设计Tips ----------------------------
+1.尽量使用系统提供的ViewController
+	许多iOS框架定义的VC你可以原样使用,既节省时间又能保证一样的体验.
+	在自定义特殊功能的VC之前,看看frameworks中是否有完成这样功能的VC:
+	1. UIKit 					弹出,获得照片与视频,管理iCloud,及标准容器VC.
+	2. GameKit					游戏排行榜等
+	3. Address Book UI Framework 显示和选择用户联系人信息
+	4. MediaPlayer framework	播放/管理Video, 选择用户的多媒体
+	5. EventKit UI framework	显示和编辑用户的日历数据
+	6. GLKit					OpenGL
+	7. Message UI framework		邮件与短信VC
+	8. PassKit					PassBook
+	9. Social framework 		社交VC,提供Facebook,twitter等
+	10. AVFoundation 			提供VC显示媒体资产 ?
+	//系统自带VC不要修改, 会产生不可预料的BUG
+	
+2.保证每个VC是独立的
+	当两个VC需要通信来传递数据,则显式定义公共接口.
+	尽量用delegate委托在VC之间的通信.
+
+3. 使用RootVC来作为其他VC的容器
+
+4. 数据在哪里 
+	在MVC模式中,VC是促进数据从view和model中移动的.一个VC可以在临时变量中存储一些数据及验证,
+	但VC主要职责是保证它的View有精准的数据. 数据对象才是用来管理真实数据和保证数据完整的.
+	//数据对象如UIDocument
+	
+5. 适应改变change
+	App能运行的不同iOS设备上, 与其用不同VC管理不同大小的内容,不如用内置自适应支持来适应大小改变.
+	
+概览:1-3  END
+
+ViewController定义:4-7
+-------------------4. 定义VC子类 ----------------
+继承UIViewController类, 还有table,collection 
+	
+1. 定义UI
+	通常使用storyboard文件. sb中拖的VC没有与class关联,要使用id分配一个VC类.
+	storyboard的作用:
+		控制views
+		连接outlets,actions
+		创建VCs之间的关系和segues[见下面]
+		定制自适应layout		[见下面]
+		增加手势识别
+	
+2. 处理用户交互
+	Responder Objects[响应对象]处理进来的事件并执行相应方法. 
+	虽然VC也是响应对象,很少直接处理touch事件,而是用以下方式:
+	1. VC定义方法,来处理高优先级的事件: 点击按钮和手势识别
+	2. VC观察到Notification,来自系统或其他对象
+	3. VC同时扮演dataSource,delegate. 如作为table,collection的ds,delegate
+		
+3. 运行时显示views
+	UIKit从storyboard中加载Views的部分顺序如下:
+		-实例化views
+		-连接outlets和actions
+		-给VC的rootView分配对象
+		-调用VC的awakeFromNib()
+		-调用VC的viewDidLoad().   ---在此方法中CURD views,更改layout约束,从views中加载数据.
+	在显示view前后,UIKit提供一些可选的准备,顺序如下:
+		-viewWillAppear()
+		-更新views的layout
+		-此时显示
+		-viewDidAppear()
+		
+	//每当增删改view的大小/位置时,都要记得增删views的约束......
+	
+4. ★管理view的布局
+	对于使用AutoLayout,UIKit根据AutoLayout引擎根据当前约束来改变布局.
+	通过layout process, UIKit作以下几点:
+		1. 更改views的'特征集合'.  [看本文下边 The Adaptive Model]
+		2. viewWillLayoutSubViews()
+		3. containerViewWillLayoutSubViews(),在当前的UIPresentationController对象中
+		4. 调用rootView的layoutSubViews().  它会横穿整个view层次,每个subViews都会调用此方法.
+		5. 将计算好的layout信息执行于views
+		6. viewDidLayoutSubViews()
+		7. containerViewDidLayoutSubViews(), 在当前的UIPresentationController对象中
+		
+	通过VC的viewWill/DidLayoutSubviews()来执行可选的方法可影响layout process.
+	在之前,你可以增删views,修改大小位置和约束.
+	在之后,你可以reload table数据,更新views的内容,或作view大小位置的最后调整.
+	一些更有效layout的建议:
+		-使用Auto Layout
+		-利用top/bottom layout指南的优势
+		-记得每次增删views后要更新约束
+		-在views执行动画时,要临时删除约束!
+			动画前删除,动画后再加上. 记得在动画中views大小/位置改变时,要实时修改约束.
+			
+5. 有效管理内存
+	多数释放内存的方式是删除strong引用. 要删除strong引用,设置属性和变量指针为nil.
+
+-------------------5. 实现一个容器VC ----------
+UIKit中的容器有UINavigationVC,UITarBarVC,UISplitVC(iPad上)等
+1. 设计一个自定义容器
+	容器VC和内容VC一样管理着rootView和其他内容; 不同之处是:容器从其他VC那获得部分内容.
+	获得的内容嵌入到自己的view层次,但内容的管理仍然由原owner管理.
+	
+	当设计一个容器,要理解包含与被包含VC的关系,在设计过程中,要问自己如下问题:
+		-容器与children各扮演什么样的角色.
+		-同时显示多少children
+		-兄弟VC之间是什么样的关系
+		-如何增删childVC
+		-children的大小位置能改变吗? 什么样的情况下发生?
+		-容器会有装饰view或导航之类的view显示吗?
+		-容器与children间需要什么样的通信? 容器需报告特别事件给children吗?
+		-容器外观可以不同方式配置吗? 如有,怎么配置
+		
+2. 在storyboard中配置容器
+	在一个VC(此为容器)中拖入container对象,此容器指向另一个VC(即childVC),有segue的.
+	
+3. 实现一个容器
+	1. 添加childVC到内容中 (待以后需要容器时看)
+	2. 删除一个childVC
+	3. children之间的过渡
+	4. 为children管理外观修改
+4. 对建立容器的建议		(未学)
+5. delegate控制childVC	(未学)
+
+-------------------6. Accessibility(易亲近的) ---------
+好的App是任何人都容易上手的. 像残疾人,物理损伤的人(有点夸张了).
+要容易上手, 应提供操作步骤或说明. 
+	确保每个界面元素都亲近的,包括控制和静态元素如label.
+	确保亲近的元素提供准确和有帮助的说明.
+	
+	1. '画外音'光标
+		界面上晃动的小手+说明/图片. 让初次进入的用户能知道干嘛;
+		更新后新增了元素加上'画外音'告知一下. 布局改变也说明了下.
+		使用UIAccessibilityPostNotification(), 放入UIAccessibilityScreenChangedNotification(屏幕改变提醒)
+		-viewDidAppear{
+			[super viewDidAppear:];
+			UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification,
+				self.myFirstElement);  //画外音光标,, 有待研究.
+		}
+	2. 观察Accessibility Notifications
+		通过提醒,来自动执行动作. 如iBook读完最后一行发送Notification,则自动翻页.
+		-viewDidLoad {
+			[super viewDidLoad];
+			[[NSNotificationCenter defaultCenter]
+				addObserver:self
+				 selector:@selector(myMtd:)
+				 name:Notification类型
+				 object:nil];
+		}
+		-myMtd:(NSNotification notifi){
+			NSString *value = [[notifi userInfo] objectForKey:objectForKey:UIAccessibilityAnnouncementKeyStringValue];
+			NSString *isSuccess = [[notifi userInfo] objectForKey:objectForKey:objectForKey:UIAccessibilityAnnouncementKeyWasSuccessful];
+			......等等求助提醒			
+		}
+-------------------7. 状态保存与恢复 ----------------------
+VC在状态保存/恢复过程中扮演非常重要的角色.
+状态保存,记录着App暂停前的'配置',此'配置'能在App再启动后恢复.
+
+保存/恢复大多时候是自动的. 但你要告诉iOS要保存哪部分. 然后保存过程分为以下:
+	1. 给VC分配restorationIdentifire属性.
+	2. 告诉iOS在启动时如何创建和定位'新的VC'
+	3.[可选]对于每个VC,储存特殊配置都要返回它原来的配置.
+	//可参考下[iOSApp编程指导[官网]]
+	
+1. 保存状态时标记VC
+	UIKit只有你告诉它保存,它才保存.  VC类有restorationIdentifire属性,默认nil.可storyboard/代码来分配resId.
+	当要分配restoreId时,必须此VC的所有parent VC也有restoreId(即不为nil). 
+	通过保存过程,UIKit从rootVC走完VC层级, 如某VC无restoreId,则它与children还有[跳转的VC]都会被忽略.
+	
+	(1) 选择有效的restoreId
+		VC每一层都有restoreId,所有的id链就变成了层级路径path.
+		restoreId通常使用类名,当多个地方类名相同,则要起更有意义的名字,如VC管理的数据.
+		容器里的path也要唯一, 但UINavigateVC例外,因它会给child的id加上堆顺序.
+		
+	(2) 不包括VC的组
+		如上级VC未分配restoreId,则它的children与跳转VC都不保存.
+		....
+	(3) 保存VC的views
+		如保存scrollView滚动到某位置.  保存views信息顺序如下:
+			-给view分配restorationIdentifier
+			-对于tableView/collectionView,分配一个dataSource,采用UIDataSourceModelAssociation协议.
+		
+2. 启动时恢复VC状态
+	在启动时, UIKit按以下顺序create/locate你的VC:
+		(1) 如果VC有[恢复类],UIKit让恢复类来提供VC.
+			UIKit调用viewControllerWithRestorationIdentifierPath()来根据恢复类来检索VC. 如返回Nil则不创建.
+			 //VC需实现UIViewControllerRestoration协议,并重写上面方法.
+		(2) UIKit让app delegate来提供VC.
+			调用app delegate中的viewControllerWithRestorationIdentifierPath()方法来检索VC. 
+		(3) 如VC有正确的restoreID, 则UIKit使用它.
+		(4) 如上边都不行, 则从storyboard文件中重加载.
+			
+		例子: 使用恢复类方法,从storyboard中重加载VC对象并返回:
+			+viewControllerWithRestorationIdentifierPath:ids coder:{
+				XMViewController *vc;
+				UIStoryboard *sb = [coder decodeObjectForKey:UIStateRestorationViewControllerStoryboardKey];
+				if(sb) {
+					vc = (PushViewController*)[sb instantiateViewControllerWithIdentifier:@"XMViewController"];
+					vc.restorationIdentifier = [ids lastObject];		//重新分配restoreId,restoreClass是好习惯
+					vc.restorationClass = [XMViewController class];
+				}
+				return vc;
+			}
+			//注意,通过coder的decode...方法返回的VC是解码状态的.
+			
+3. 编码/解码VC的状态
+	在保存对象状态时, UIKit调用encodeRestorableStateWithCoder:来编码状态后保存,
+	在恢复对象状态时, UIKit调用decodeRestorableStateWithCoder:来解码状态后成为一个对象.
+	方法是可重写的, 但要记住,你只能保存以下各类的信息:
+		-显示中的数据的引用.
+		-对于容器,它的childVC的引用
+		-当前选择的信息
+		-带用户可配置view的VC, 当前配置信息的view信息.
+		
+	编码的对象(除了view,VC)必须实现NSCoding协议.
+	VC编码解码int的例子:
+	-encodeRestorableStateWithCoder:coder{
+		[super xxx];
+		[coder encodeInt:self.age forKey:xxx];
+	}
+	-decodeRestorableStateWithCoder:coder{
+		[super xxx];
+		self.age = [coder decodeIntForKey:xxx];
+	}
+	对于使用的Key要唯一,但不要使用系统使用的Key:UIApplicationStateRestorationBundleVersionKey, UIApplicationStateRestorationUserInterfaceIdiomKey, and UIStateRestorationViewControllerStoryboardKey
+
+	
+	
+呈现与过渡:8-11 
+-------------------8. 呈现一个ViewController --------------
+1. 呈现与过渡process
+	呈现VC是快而容易的方式动画展示新内容. 可用内置动画或自定义动画.
+	可用sb的segue或代码来初始化VC的呈现. 如设计时清楚导航,则segue是最容易的,
+		当是动态的或没有专门的组件连接segue,则使用VC类方法来呈现.
+		
+	(1) 呈现样式
+		UIKit提供一几种标准样式,每个有不同的外观和目的.
+		分配modalPresentationStyle属性样式常量.[新VC]
+		>>>全屏呈现样式
+			UIModalPresentationFullScreen:  全局呈现
+			UIModalPresentationPageSheet	半屏中间呈现
+			UIModalPresentationFormSheet	半屏middle呈现
+		>>>popover样式 UIModalPresentationPopover 会在弹出的View里呈现VC[哇,view里包含VC].
+		>>>当前上下文样式 UIModalPresentationCurrentContext, 页面显示两个VC, 你指定哪个要被覆盖,就把哪个的
+			definesPresentationContext属性设为YES.
+		>>>自定义呈现方式 UIModalPresentationCustom [见下面]
+			
+		//注意: 全屏,上下文时,覆盖后会把下面的views删除掉. 被覆盖VC要设置UIModalPresentationOverFullScreen才不被删除.
+		
+	(2) 过渡样式
+		modalTransitionStyle属性设置内置的动画.[新VC]
+		可使用'动画对象','动画委托'来自定义过渡效果.  [自定义过渡动画见下面]
+		
+	(3) Present对比Show方式:
+		1. showViewController / 或showDetailViewController
+			是最适合,最灵活的展示VC方法. 它会让老VC决定如何最优地处理呈现. 如直接present还是容器包含.
+		2. presentViewController
+			模式地呈现VC.VC可以最终不能处理呈现. .....
+			
+		//show是优先方式.VC不必知道层级中其他部分的信息,也不必知道自己在层级什么位置.
+		  show方法使得在App不同部分重用VC可容易,不用写条件语句.
+			
+2. 呈现一个VC
+	几种呈现方式:
+	-segue
+	-showViewController:sender:或showDetailViewController:sender: 
+	-presentViewController:animated:completion
+	
+	(1) show方法
+		1.创建新VC (sb或者代码实例化)
+		2.modalPresentationStyle属性 [新VC]
+		3.modalTransitionStyle  属性 [新VC]
+		4.调用showViewController:sender:或showDetailViewController:sender:
+		//show方式会最优地执行呈现,需要时还会改变呈现/动画的样式.  例如navigation会将VC推进它的堆里.
+	
+	(2) present方法
+		你要告诉UIKit怎么展现新VC和如何动画:
+		1.创建要呈现的VC. (有sb创建. 动态的就代码实例化了.)
+		2.modalPresentationStyle属性 [新VC]
+		3.modalTransitionStyle  属性 [新VC]
+		4.调用presentViewController:animated:completion:方法来实现present[老VC]
+		
+		仅仅调用presentViewController:不一定能实现present,还要设置呈现方式.方式设置不对还呈现不了.
+		例如fullScreenStyle必须在全屏VC上. 如果当前老VC不合适,则UIKit会沿着VC层次直到找到合适的.
+		e.g 代码实现Present方法:
+		-(IBAction)add:{
+			XMViewController *vc = [[XMViewController alloc] init];
+			vc.modalPresentationStyle = 
+			vc.modalTransitionStyle = 
+			[self presentViewController:vc animated:YES completion:nil];
+		}
+		
+	(3)present呈现一个popover
+		1.弹出 modalPresentationStyle = UIModalPresentationPopover
+		2.大小 preferredContentSize属性 设置popover的大小
+		3.锚点 popoverPresentationController = UIPopoverPresentationController对象.
+			 -barButtonItem属性 挂勾VC中哪个barButtonItem
+			 -sourceView和sourceRect属性,在某view中特定区域.
+		4.调用presentViewController()
+		
+		//popoverController对象也可以使用delegate来处理它的'出现,消失,复位...'
+			
+3. 解散已经呈现的VC
+	在解散VC之前要保存好重要信息. 
+	解散会将VC从层级中删除并将views从屏幕中删除,如果其他地方没有strong引用,则会释放相关的内存.
+	dismissViewControllerAnimated()老VC的方法. 你也可以在新VC中调用,不过UIKit会自动将请求转向老VC.
+	
+	如新VC会向老VC返回数据,使用delegate模式进行转移,用代理使重用VC更容易.
+	新VC保存一个delegate对象的引用, 对象方法实现某协议,新VC调用它的delegate的方法.
+	典型的做法是: 老VC作为新VC的delegate.
+	
+4. present另一个storyboard中的VC ....
+
+-------------------9. 使用segues --------------------------
+segue定义了顺序流. 开始点是button,tableCell或手势,结束点是新VC.
+	也能使用unwind的segue解散VC.
+	也能使用Notification向新VC发送数据,或阻止segue执行.
+
+	//一个元素可能连接多个segue,如tableCell中的button连接一个,cell点击后连接另一个.
+	
+1. segue种类:
+	show(push):  对应showViewController(),
+		一些VC重写此方法实现不同行为. UIKit使用targetViewControllerForAction()定位源VC.
+	show Detail(replace): 
+		在UISplitViewController中分左右显示. 右边VC会replace的显示.
+	
+	present Modally:   同代码中使用presentViewController()
+	present as popover: 同代码中使用style=popover; presentViewController()
+
+2. 运行时修改segue行为
+	1. segue运行过程:
+		-点击触发行为
+		-shouldPerformSegueWithIdentifier:决定是否执行segue,返回YES向下
+		-VC创建segue和新VC.
+			通过UIStoryboardSegue和instantiateViewControllerWithIdentifier:创建VC
+		-performForSegue:sender:来进行跳转, 
+			sender包含老VC的引用(即源VC与目标VC),可取出这两VC.
+			源VC可向目标VC传递data.
+		-新VC展现.
+
+3. 创建UnWind segue (回家试试)
+	unwind可让已呈现的VC解散. 
+	1.新VC上创建一个button
+	2.老VC里定义一个IBAction方法.参数必须是UIStoryboardSegue类型
+		-(IBAction)xmUnwindAction:(UIStoryboardSegue *)segue{}
+		//定义在新/老VC中,同present的解散一样,新VC定义的解散方法UIKit会自动转到老VC中.
+	3.右击老VC的'Exit Object',弹出定义的方法,拖到新VC上的button.
+
+	//呈现完后点击button就会返回到老VC,并解散之前的VC. (即退出并销毁)
+	
+4. 代码初始化segue
+	目标VC还不明确时,无法拖segue只能代码.
+	在源VC中使用performSegueWithIdentifier()来触发segue.
+	[self performSegueWithIdentifier:@"xmNextVC" sender:self];
+	
+	//前提,该VC自己或view的组件连接了多个新VC, 这样代码就好选择了.
+	  storyboard的segue要设置id.
+	  prepareForSegue()方法是唯一的segue没得选,直接跳
+	
+5. 创建自定义segue
+	当系统提供的标准方法还不满足, 则可自定义segue.
+	(暂略)
+	
+-------------------10. ★自定义过渡动画 ---------------------
+动画分两部分: 呈现,返回.  
+  呈现是增加一个新的VC到层次中来; 返回是删除一个或多个VC.
+
+1.使用动画代理
+	transitioningDelegate属性和UIViewControllerTransitioningDelegate, 代理提供以下几个对象:
+	1.动画对象.  
+		显/隐VC的views. 实现UIViewControllerAnimatedTransitioning协议
+	2.交互对象
+		驱动事件/手势动画的定时.实现UIViewControllerInteractiveTransitioning协议
+		最容易的方法是继续UIPercentDrivenInteractiveTransition类,加上事件处理代码.
+	3.呈现控制
+		管理呈现样式当VC在屏幕上时.
+	//通过动画,交互和最终样式,来控制过渡的动画.
+  
+2. 自定义动画顺序   (对transitionDelegate还不熟, 以后用到再学)
+3. 过渡上下文对象
+4. 过渡协调器
+5. 使用自定义动画来呈现VC
+6. 实现过渡代理
+7. 生成动画对象
+8. 在过渡中添加交互
+9. 创建在过渡旁边的动画
+10. 对动画使用呈现控制
+
+-------------------11. ★自定义呈现方式 (未学)---------------------
+当VC的modalPresentationStyle属性为UIModalPresentationCustom[自定义]
+	并提供了过渡delegate时,UIKit使用自定义的.
+
+1. 自定义呈现过程
+	
+2. 创建一个呈现控制
+
+3. 把自定义呈现控制交给UIKit
+
+
+
+适应大小改变:12,13 
+-------------------12. ★自适应模式 (还未学)-------------------------
+自适应模式方式简单,但动态的重排列/重设大小以响应内容改变.
+	第一个是Auto Layout,创建约束来管理views的布局.可以代码/可视化地创建约束.
+	第二个是特性Traits, Traits描述了VC和views必须操作的环境,能帮你制作更高级的决策.
+
+1. Traits角色
+	仅有约束不足以管理layout,VC还有其他几个改变因素.VC,views和一些对象管理traits的集合.
+	UITraitCollection里的特征属性及如何用它影响UI:
+		1.horizontalSizeClass
+		2.verticalSizeClass
+		3.displayScale
+		4.userInterfaceIdiom
+
+2. Traits和大小变化什么时候发生?
+
+3. 不同设备的默认大小
+
+-------------------13. ★建立一个自适应接口 (还未学)-----------------
+1.自适应接口可响应Trait特征和大小改变
+
+2.响应大小改变
+
+
+------结束 -----------
+
