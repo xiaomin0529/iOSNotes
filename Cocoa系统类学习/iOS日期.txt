@@ -1,5 +1,66 @@
 
-NSDate,NSDateComponents, NSCalendar
+-----------
+日期比较:  
+if([currentDate compare:date8]==NSOrderedDescending)
+
+===================日期处理 20160527=========================================
+NSDate, 表示绝对的时间点, 不可改变
+NSDateComponents, 封装了具体年月日,时分秒,周,季等
+NSCalendar		提供了大部分的日期计算接口, 且允许在NSDate, NSDateComponents间相互转化.
+
+
+
+NSDateComponents *compt = [[NSDateComponents alloc] init];
+
+一些设置时间示例
+[compt setYear:2016]
+[compt setWeek:3]
+[compt setWeekday:5]
+[compt setCalendar:[NSCalendar currentCalendar]
+
+取得 
+[compt year]
+[compt weekday]
+...
+
+
+1.取date的某些属性,  用component封装
+-(NSDateComponents *)components:unitFlags fromDate:date
+	取得一个NSDate对象的1个或多个部分，用NSDateComponents来封装
+    只有明确指定了unitFlags，NSDateComponents相应的那一部分才有值
+
+	NSDateComponents *compt = [calendar components:
+		(NSYearCalendarUnit|NSMonthCalendarUnit|NSDayCalendarUnit) 	 --放了几个unit,才能取出几个值.
+		fromDate:date];
+	[compt year]
+	[compt month]
+	[compt day]		
+
+
+	
+2. 取两个dates相差的时间, 用component封装
+-(NSDateComponents *)components:unitFlags 
+		fromDate:startingDate toDate:resultDate 
+		options : (NSUInteger)opts	
+
+	NSDateComponents *compt = [calendar components:
+		(NSMinuteCalendarUnit|NSSecondCalendarUnit) 
+		fromDate:date toDate:date2 options:0];
+	[compt minute]
+	[compt second]
+	相隔的时间由多个部分共同组成(而不是独立去表示)。
+	例如：上面的例子时间相差5小时1分15秒，如果指定只返回second部分，将得到18075秒；如果指定返回minute和second部分，将得到301分15秒；如果指定返回hour、minute和second，将得到5小时1分15秒。
+
+
+3. -(NSDate *)dateByAddingComponents:comps toDate:date options:(NSUInteger)opts
+	在参数date基础上，增加一个NSDateComponents类型的时间增量
+	[compt setDay:-1]
+	NSDate *date2 = [calendar dateByAddingComponents:compt toDate:[NSDate date] options:0]
+	--返回昨天的当前时间
+	
+	
+
+在参数date基础上，增加一个NSDateComponents类型的时间增量	
 
 ---------------- NSDate  ----------------------------------
 NSDate存储的是世界标准时(UTC)，输出时需要根据时区转换为本地时间
